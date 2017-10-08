@@ -15,55 +15,55 @@ typedef void (*VEC_FOREACH_FUNC)(void *value, void *user_data);
 typedef VEC_FOREACH_FUNC vec_foreach_func_t;
 
 // 工厂方法
-VEC *vec_new(int unit_size, destroy_func_t destroy);
-VEC *vec_new_with_capacity(int unit_size, destroy_func_t destroy, int capacity);
+CSTL_LIB VEC *vec_new(int unit_size, destroy_func_t destroy);
+CSTL_LIB VEC *vec_new_with_capacity(int unit_size, destroy_func_t destroy, int capacity);
 
-void vec_free(VEC *vec);
+CSTL_LIB void vec_free(VEC *vec);
 
 // 访问修改容量信息
-int vec_capacity(VEC *vec);
-bool vec_empty(VEC *vec);
-int vec_size(VEC *vec);
+CSTL_LIB int vec_capacity(VEC *vec);
+CSTL_LIB bool vec_empty(VEC *vec);
+CSTL_LIB int vec_size(VEC *vec);
 
-void vec_resize(VEC *vec, int new_size, void *value);
+CSTL_LIB void vec_resize(VEC *vec, int new_size, void *value);
 
 // 增加
-void vec_push_front(VEC *vec, void *elem);
-void vec_push_back(VEC *vec, void *elem);
-void vec_insert(VEC *vec, int index, void *elem);
-void vec_extend(VEC *vec, int index, VEC *insert_vec);
-void vec_extend_front(VEC *vec, VEC *insert_vec);
-void vec_extend_back(VEC *vec, VEC *insert_vec);
+CSTL_LIB void vec_push_front(VEC *vec, void *elem);
+CSTL_LIB void vec_push_back(VEC *vec, void *elem);
+CSTL_LIB void vec_insert(VEC *vec, int index, void *elem);
+CSTL_LIB void vec_extend(VEC *vec, int index, VEC *insert_vec);
+CSTL_LIB void vec_extend_front(VEC *vec, VEC *insert_vec);
+CSTL_LIB void vec_extend_back(VEC *vec, VEC *insert_vec);
 
 //  访问/修改
-void *vec_get(VEC *vec, int index);
+CSTL_LIB void *vec_get(VEC *vec, int index);
 
-void *vec_at(VEC *vec, int index);
-void vec_assign(VEC *vec, int index, void *value);
+CSTL_LIB void *vec_at(VEC *vec, int index);
+CSTL_LIB void vec_assign(VEC *vec, int index, void *value);
 
-void *vec_front(VEC *vec);
-void *vec_back(VEC *vec);
+CSTL_LIB void *vec_front(VEC *vec);
+CSTL_LIB void *vec_back(VEC *vec);
 
 // 移除
-void vec_pop_back(VEC *vec);
-void vec_pop_front(VEC *vec);
+CSTL_LIB void vec_pop_back(VEC *vec);
+CSTL_LIB void vec_pop_front(VEC *vec);
 
-void vec_remove(VEC *vec, void *value, cmp_func_t compare); //移除第一个出现的值
-void vec_erase(VEC *vec, int index); //移除指定位置上的元素
-void vec_clear(VEC *vec); //移除内部所有元素
+CSTL_LIB void vec_remove(VEC *vec, void *value, cmp_func_t compare); //移除第一个出现的值
+CSTL_LIB void vec_erase(VEC *vec, int index); //移除指定位置上的元素
+CSTL_LIB void vec_clear(VEC *vec); //移除内部所有元素
 
 // 查找
-void *vec_find(VEC *vec, void *val, cmp_func_t compare);
-void *vec_bin_find(VEC *vec, void *val, cmp_func_t compare);
+CSTL_LIB void *vec_find(VEC *vec, void *val, cmp_func_t compare);
+CSTL_LIB void *vec_bin_find(VEC *vec, void *val, cmp_func_t compare);
 
 // 排序（使用快速排序算法）
-void vec_sort(VEC *vec, cmp_func_t compare);
+CSTL_LIB void vec_sort(VEC *vec, cmp_func_t compare);
 
 // 交换两个元素的值
-void vec_swap(VEC *vec, int idx1, int idx2);
+CSTL_LIB void vec_swap(VEC *vec, int idx1, int idx2);
 
 // 遍历函数
-void vec_foreach(VEC *vec, vec_foreach_func_t vec_foreach_func, void *user_data);
+CSTL_LIB void vec_foreach(VEC *vec, vec_foreach_func_t vec_foreach_func, void *user_data);
 
 //// 下面定义的宏， 主要忽略类型转换问题
 #define DEFINE_NUM_TYPE_VEC(type) \

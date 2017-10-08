@@ -1,0 +1,4 @@
+build/*.o
+dep/*.d
+.ycm_extra_conf.py
+*.stackdump

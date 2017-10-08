@@ -39,23 +39,23 @@ START_TEST(test_cstl_leak_test) {
     int i;
     int *array[10];
 
-    ck_assert_int_eq(0, cstl_leak_test());
+    ck_assert_int_eq(0, cstl_leak_test(0));
 
     d = cstl_malloc(sizeof(int));
-    ck_assert_int_eq(1, cstl_leak_test());
+    ck_assert_int_eq(1, cstl_leak_test(0));
 
     cstl_free(d);
-    ck_assert_int_eq(0, cstl_leak_test());
+    ck_assert_int_eq(0, cstl_leak_test(0));
 
     for (i = 0; i < 10; i++) {
         array[i] = (int*)cstl_malloc(sizeof(int));
     }
-    ck_assert_int_eq(10, cstl_leak_test());
+    ck_assert_int_eq(10, cstl_leak_test(0));
 
     for (i = 0; i < 10; i++) {
         cstl_free(array[i]);
     }
-    ck_assert_int_eq(0, cstl_leak_test());
+    ck_assert_int_eq(0, cstl_leak_test(0));
 
 }
 END_TEST

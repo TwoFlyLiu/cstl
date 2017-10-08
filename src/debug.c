@@ -34,7 +34,7 @@ __malloc_memory_record_node(unsigned int size, const char *fname, int line, cons
 
 static inline void memory_record_lists_insert(memory_record_node_t *record_node);
 static inline void memory_record_lists_remove(void *me);
-static inline int memory_record_lists_leak_test();
+static inline int memory_record_lists_leak_test(int verbose);
 
 // 以分配内存值的地址来作为key计算hash值
 static inline unsigned int ptr_hash_value(void *memory);
@@ -56,13 +56,14 @@ __cstl_free(void *mem)
     memory_record_lists_remove(mem);
 }
 
-CSTL_EXPORT int __cstl_leak_test(void)
+CSTL_EXPORT int __cstl_leak_test(int verbose)
 {
-    return memory_record_lists_leak_test();
+    return memory_record_lists_leak_test(verbose);
 }
 
-CSTL_EXPORT int __cstl_no_leak(void)
+CSTL_EXPORT int __cstl_no_leak(int verbose)
 {
+    verbose = 0;
     return 0;
 }
 
@@ -136,19 +137,27 @@ static inline void memory_record_lists_remove(void *mem)
 }
 
 static inline void memory_record_node_report_leak_info(memory_record_node_t *node);
-static inline int memory_record_lists_leak_test()
+static inline int memory_record_lists_leak_test(int verbose)
 {
     int i;
     memory_record_node_t *node;
     int leak_count = 0;
+    int total_leak_memory = 0;
 
     for (i = 0; i < MAX_BUCKETS; i++) {
         node = memory_record_lists[i];
         while (node) {
-            memory_record_node_report_leak_info(node); //值报告错误，不会释放掉泄露的内存
+            if (verbose) {
+                memory_record_node_report_leak_info(node); //值报告错误，不会释放掉泄露的内存
+            }
+            total_leak_memory += node->len;
             node = node->next;
             ++ leak_count;
         }
+    }
+    
+    if (verbose && leak_count > 0) {
+        printf("total leak count: %d, total leak memory: %d bytes\n", leak_count, total_leak_memory);
     }
     return leak_count;
 }

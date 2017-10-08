@@ -6,6 +6,8 @@
 */
 #include <math.h>
 
+
+
 // 定义有符号整数的比较函数
 #define __CSTL_DEFINE_SIGNED_INTEGER_NUM_CMP_FUNC(type) \
     int __cstl_##type##_cmp_func(type *lhv, type *rhv) {\
@@ -64,7 +66,7 @@ int __cstl_long_long_cmp_func(long long *lhv, long long *rhv)
     return *lhv - *rhv;
 }
 
-static int
+int
 __cstl_long_long_hash_func(long long *value)
 {
     return (int)*value;

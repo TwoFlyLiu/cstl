@@ -42,20 +42,22 @@ typedef void (*destroy_func_t)(void *value);
 
 
 // 定义函数的引用宏
-#define CSTL_NUM_CMP_FUNC(type) (&((cmp_func_t)__cstl_##type##_cmp_func))
-//#define CSTL_UNSIGNED_CMP_FUNC(type) (&((cmp_func_t)__cstl_unsigned_##type##_cmp_func))
+#define CSTL_NUM_CMP_FUNC(type) ((cmp_func_t)(&__cstl_##type##_cmp_func))
 #define CSTL_UNSIGNED_CMP_FUNC(type) CSTL_NUM_CMP_FUNC(type)
 
+#define __CSTL_DECLARE_TYPE_CMP_FUNC(type) \
+    int __cstl_##type##_cmp_func(type *lhv, type *rhv)
 
-//DEFINE_UNSIGNED_INTEGER_NUM_CMP_FUNC(char)
-//DEFINE_UNSIGNED_INTEGER_NUM_CMP_FUNC(short)
-//DEFINE_UNSIGNED_INTEGER_NUM_CMP_FUNC(int)
-//DEFINE_UNSIGNED_INTEGER_NUM_CMP_FUNC(long)
+// 声明常见的比较函数，定义位于cstl_stddef.c文件中
+__CSTL_DECLARE_TYPE_CMP_FUNC(char);
+__CSTL_DECLARE_TYPE_CMP_FUNC(short);
+__CSTL_DECLARE_TYPE_CMP_FUNC(int);
+__CSTL_DECLARE_TYPE_CMP_FUNC(long);
+__CSTL_DECLARE_TYPE_CMP_FUNC(float);
+__CSTL_DECLARE_TYPE_CMP_FUNC(double);
 
-//#define DEFINE_UNSIGNED_NUM_HASH_FUNC(type) \
-    //static unsigned int __cstl_unsigned_##type##_hash_func(unsigned type *value) {\
-        //return (unsigned int)*value;\
-    //}        
+#undef __CSTL_DECLARE_TYPE_CMP_FUNC
+
 
 #define CSTL_NUM_HASH_FUNC(type) (&((hash_func_t)__cstl_##type##_hash_func))
 //#define CSTL_UNSIGNED_HASH_FUNC (&((hash_func_t)__cstl_unsigned_##type##_hash_func))
@@ -73,6 +75,9 @@ typedef void (*destroy_func_t)(void *value);
 // 表示支持c99标准
 #if defined(__STDC__) && defined(__STDC_VERSION__) &&  (__STDC_VERSION__ > 199901L)
 #include <stdbool.h>
+
+int __cstl_long_long_cmp_func(long long *lhv, long long *rhv);
+int __cstl_long_long_hash_func(long long *value);
 
 #define CSTL_LLONG_CMP_FUNC (&((cmp_func_t)__cstl_long_long_cmp_func))
 #define CSTL_ULLONG_CMP_FUNC CSTL_LLONG_CMP_FUNC
@@ -99,5 +104,8 @@ typedef void (*destroy_func_t)(void *value);
 // 先预留一个宏，用来以后支持gcc以外的编译器
 // 这儿当且是非gcc编译器，动态库时候可能有用
 #define CSTL_EXPORT
+
+#define CSTL_MIN(a, b) ((a) < (b) ? (a) : (b))
+#define CSTL_ABS(a) ((a) >= 0 ? (a) : -(a))
 
 #endif //STDDEF_H_H

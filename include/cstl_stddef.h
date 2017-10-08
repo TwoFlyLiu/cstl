@@ -25,6 +25,18 @@
 // 一个空的destroy函数指针
 // CSTL_NULL_DESTROY_FUNC 
 
+
+// 为了兼容c++，定义前缀extern "c"
+#if defined(__cplusplus)
+#define CSTL_LIB extern "C"
+#else
+#define CSTL_LIB
+#endif
+
+// 先预留一个宏，用来以后支持gcc以外的编译器
+// 这儿当且是非gcc编译器，动态库时候可能有用
+#define CSTL_EXPORT
+
 #include <math.h>
 #include <stdlib.h>
 
@@ -76,8 +88,8 @@ __CSTL_DECLARE_TYPE_CMP_FUNC(double);
 #if defined(__STDC__) && defined(__STDC_VERSION__) &&  (__STDC_VERSION__ > 199901L)
 #include <stdbool.h>
 
-int __cstl_long_long_cmp_func(long long *lhv, long long *rhv);
-int __cstl_long_long_hash_func(long long *value);
+CSTL_LIB int __cstl_long_long_cmp_func(long long *lhv, long long *rhv);
+CSTL_LIB int __cstl_long_long_hash_func(long long *value);
 
 #define CSTL_LLONG_CMP_FUNC (&((cmp_func_t)__cstl_long_long_cmp_func))
 #define CSTL_ULLONG_CMP_FUNC CSTL_LLONG_CMP_FUNC
@@ -94,16 +106,6 @@ int __cstl_long_long_hash_func(long long *value);
 // 定义空的destroy函数
 #define CSTL_NULL_DESTROY_FUNC (&__cstl_destroy_func)
 
-// 为了兼容c++，定义前缀extern "c"
-#if defined(__cplusplus)
-#define CSTL_LIB extern "C"
-#else
-#define CSTL_LIB
-#endif
-
-// 先预留一个宏，用来以后支持gcc以外的编译器
-// 这儿当且是非gcc编译器，动态库时候可能有用
-#define CSTL_EXPORT
 
 #define CSTL_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define CSTL_ABS(a) ((a) >= 0 ? (a) : -(a))

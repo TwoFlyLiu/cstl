@@ -25,8 +25,8 @@ $(lib): $(lib_objects)
 # 生成测试程序
 $(test): LOADLIBES= -lcstl -lcheck 
 $(test): LDFLAGS = -Llib
-$(test): $(test_objects)
-	$(CC) $(LDFLAGS) -o $(test) $^ $(LOADLIBES) $(LDLIBS)
+$(test): $(test_objects) $(lib)
+	$(CC) $(LDFLAGS) -o $(test) $(test_objects) $(LOADLIBES) $(LDLIBS)
 
 # 模式规则
 build/%.o: src/%.c

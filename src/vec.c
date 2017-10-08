@@ -10,12 +10,13 @@
 #include <string.h>
 
 #include "vec.h"
+#include "debug.h"
 
 static inline void 
 __free(void *ptr)
 {
     if (ptr != NULL) {
-        free(ptr);
+        cstl_free(ptr);
     }
 }
 
@@ -28,7 +29,7 @@ VEC *vec_new(int unit_size, destroy_func_t destroy_func)
 VEC *vec_new_with_capacity(int unit_size, destroy_func_t destroy_func,  int capacity)
 {
     int total_size = unit_size * capacity;
-    VEC *new_vec = (VEC *)malloc(sizeof(VEC));
+    VEC *new_vec = (VEC *)cstl_malloc(sizeof(VEC));
 
     // 如果容量设置为0，那么要保证，最低容量是10
     if (0 == capacity) {
@@ -40,7 +41,7 @@ VEC *vec_new_with_capacity(int unit_size, destroy_func_t destroy_func,  int capa
     new_vec->unit_size = unit_size;
     new_vec->destroy_func = destroy_func;
 
-    new_vec->beg = malloc(total_size);
+    new_vec->beg = cstl_malloc(total_size);
     return new_vec;
 }
 

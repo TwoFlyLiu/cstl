@@ -18,6 +18,9 @@ START_TEST(test_cstl_malloc) {
     int *d = (int*)cstl_malloc(sizeof(int));
     *d = 10;
     ck_assert_int_eq(10, *d);
+
+    // 防止内存泄露
+    cstl_free(d);
 }
 END_TEST
 
@@ -34,6 +37,7 @@ END_TEST
 START_TEST(test_cstl_leak_test) {
     int *d;
     int i;
+    int *array[10];
 
     ck_assert_int_eq(0, cstl_leak_test());
 
@@ -44,9 +48,15 @@ START_TEST(test_cstl_leak_test) {
     ck_assert_int_eq(0, cstl_leak_test());
 
     for (i = 0; i < 10; i++) {
-        cstl_malloc(sizeof(int));
+        array[i] = (int*)cstl_malloc(sizeof(int));
     }
     ck_assert_int_eq(10, cstl_leak_test());
+
+    for (i = 0; i < 10; i++) {
+        cstl_free(array[i]);
+    }
+    ck_assert_int_eq(0, cstl_leak_test());
+
 }
 END_TEST
 

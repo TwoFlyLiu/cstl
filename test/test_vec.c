@@ -7,7 +7,9 @@
 #include <check_util.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "vec.h"
+#include "debug.h"
 
 #define ARRAY_SIZE(array, type) ((int)(sizeof(array) / sizeof(type)))
 

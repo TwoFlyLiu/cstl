@@ -9,9 +9,9 @@ CC = gcc
 
 debug ?= 0
 ifeq ($(debug),0)
-	CFLAGS = -Wall -O3 $(include_dirs)
+	CFLAGS = -Wall -O3 -DNDEBUG  $(include_dirs)
 else
-	CFLAGS = -Wall -g  $(include_dirs)
+	CFLAGS = -Wall -g $(include_dirs)
 endif
 
 ARFLAGS = rcs

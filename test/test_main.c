@@ -6,7 +6,7 @@
 */
 #include <check_util.h>
 
-DECLARE_SUITE(debug);
+DECLARE_SUITE(leak);
 DECLARE_SUITE(vec);
 DECLARE_SUITE(hmap);
 /*DECLARE_SUITE(hset);*/
@@ -18,7 +18,7 @@ DECLARE_SUITE(hmap);
 // 设置CK_FORK=no 来使用单进程测试
 
 START_CHECK_MAIN(cstl)
-    SUITE(debug)
+    SUITE(leak)
     SUITE(vec)
     SUITE(hmap)
     /*SUITE(hset)*/

@@ -60,7 +60,7 @@ START_TEST(test_cstl_leak_test) {
 }
 END_TEST
 
-START_DEFINE_SUITE(debug)
+START_DEFINE_SUITE(leak)
     TEST(test_cstl_malloc)
     TEST(test_cstl_free)
     TEST(test_cstl_leak_test)

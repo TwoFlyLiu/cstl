@@ -6,33 +6,21 @@
 */
 #include <check_util.h>
 
-#include "debug.h"
-
 DECLARE_SUITE(debug);
 DECLARE_SUITE(vec);
-/*DECLARE_SUITE(hmap);*/
+DECLARE_SUITE(hmap);
 /*DECLARE_SUITE(hset);*/
 
 // 使用END_CHECK_MAIN_AFTER来当所有测试都结束的时候，执行检测操作
-// 不要使用atexit, 好像有问题
-static int
-__leak_test(int res);
+// 对于check, 每个test的执行环境都是隔离的，他们的运行环境是
+// 单个进程
+// 
+// 设置CK_FORK=no 来使用单进程测试
 
 START_CHECK_MAIN(cstl)
-
     SUITE(debug)
     SUITE(vec)
-    /*SUITE(hmap)*/
+    SUITE(hmap)
     /*SUITE(hset)*/
-END_CHECK_MAIN_AFTER(__leak_test)
+END_CHECK_MAIN()
 
-static int
-__leak_test(int res)
-{
-    int leak_res = 0;
-   
-    /*cstl_malloc(20);*/
-    /*cstl_malloc(sizeof(double));*/
-    leak_res =  cstl_leak_test(1);
-    return res && leak_res;
-}

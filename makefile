@@ -33,7 +33,7 @@ build/%.o: src/%.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
 build/%.o: test/%.c
-	$(CC) -c $(CFLAGS) $< -o $@
+	$(CC) -c $(CFLAGS) $(extra_include_dirs) $< -o $@
 
 # 上下两条规则，同时存在，不会出现覆盖问题
 dep/%.d: src/%.c
@@ -63,6 +63,6 @@ uninstall:
 	rm -rf $(install_header_dir); [ -e $(install_header_dir).old ] && mv $(install_header_dir).old $(install_header_dir); true
 	rm -rf $(install_lib_dir)/$(lib_file); [ -e $(install_lib_dir)/$(lib_file).old ] && mv $(install_lib_dir)/$(lib_file).old $(install_lib_dir)/$(lib_file); true
 
+# 启用单进程模式进行测试(设置CK_FORK=no, 默认是多进程的，就是使用fork), 
 test: $(test)
 	./$(test)
-	

@@ -9,7 +9,7 @@ typedef struct {
     int unit_size;
     int capacity;
     destroy_func_t destroy_func;
-} VEC;
+} VEC, vec_t;
 
 typedef void (*VEC_FOREACH_FUNC)(void *value, void *user_data);
 typedef VEC_FOREACH_FUNC vec_foreach_func_t;

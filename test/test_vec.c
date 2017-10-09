@@ -9,7 +9,7 @@
 #include <string.h>
 
 #include "vec.h"
-#include "debug.h"
+#include "test_common.h"
 
 #define ARRAY_SIZE(array, type) ((int)(sizeof(array) / sizeof(type)))
 
@@ -22,6 +22,8 @@ START_TEST(test_new) {
     vec = vec_new_with_capacity(sizeof(int), NULL, 5);
     ck_assert_int_eq(vec_capacity(vec), 5);
     vec_free(vec);
+
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -42,6 +44,7 @@ START_TEST(test_push_back) {
     ck_assert_int_eq(2, vec_size(vec));
 
     vec_free(vec);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -89,6 +92,7 @@ START_TEST(test_resize) {
     ck_assert_int_eq(default_value, *(int*)vec_get(vec, 99));
 
     vec_free(vec);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -113,6 +117,7 @@ START_TEST(test_pop_front) {
     ck_assert_int_eq(9, *(int*)vec_get(vec, vec_size(vec) - 1));
 
     vec_free(vec);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -137,6 +142,7 @@ START_TEST(test_pop_back) {
     ck_assert_int_eq(10, vec_capacity(vec)); //容量没有发生变化
 
     vec_free(vec);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -165,6 +171,7 @@ START_TEST(test_front_back_get) {
     ck_assert_int_eq(50, *(int*)vec_get(vec, vec_size(vec) - 1));
 
     vec_free(vec); 
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -205,6 +212,7 @@ START_TEST(test_push_front) {
 
     vec_free(vec);
 }
+    ck_assert_no_leak();
 END_TEST
 
 typedef struct {
@@ -235,6 +243,7 @@ START_TEST(test_find) {
     ck_assert(NULL != vec_find(vec, &to_find, __point_compare));
 
     vec_free(vec);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -290,6 +299,7 @@ START_TEST(test_insert) {
     ck_assert_int_eq(elem, *(int*)vec_get(vec, vec_size(vec) - 2));
 
     vec_free(vec);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -354,6 +364,7 @@ START_TEST(test_extend) {
     vec_free(vec);
 
     vec_free(insert_vec);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -369,6 +380,7 @@ START_TEST(test_assign) {
     ck_assert_int_eq(data, *(int*)vec_get(vec, 0));
 
     vec_free(vec);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -422,6 +434,7 @@ START_TEST(test_erase) {
     ck_assert_int_eq(9, vec_size(vec));
 
     vec_free(vec);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -454,6 +467,7 @@ START_TEST(test_clear) {
     ck_assert(vec_empty(vec));
 
     vec_free(vec);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -473,6 +487,7 @@ START_TEST(test_remove) {
     ck_assert(NULL == vec_find(vec, &data, CSTL_NUM_CMP_FUNC(int)));
 
     vec_free(vec);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -501,6 +516,7 @@ START_TEST(test_sort) {
     }
 
     vec_free(vec);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -528,6 +544,7 @@ START_TEST(test_swap) {
     ck_assert_int_eq(1, *(int*)vec_get(vec, 2));
 
     vec_free(vec);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -541,6 +558,7 @@ START_TEST(test_vec_num_compare) {
     ck_assert((*compare)(&num1, &num1) == 0);
     ck_assert((*compare)(&num1, &num2) <= 0);
     ck_assert((*compare)(&num1, &num1) <= 0);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -614,6 +632,7 @@ START_TEST(test_vec_type_macro) {
     ck_assert(double_vec_find(vec, 3.140000000002) != NULL);
 
     vec_free(vec);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -758,6 +777,7 @@ START_TEST(test_struct_vec) {
     person_t_vec_sort_func(vec, __person_age_cmp);
 
     vec_free(vec);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -832,6 +852,29 @@ START_TEST(test_bin_find)
     }
 
     vec_free(vec);
+    ck_assert_no_leak();
+}
+END_TEST
+
+static void int_ptr_destroy(int **elem)
+{
+    cstl_free(*elem);
+}
+
+START_TEST(test_destory_func) {
+    VEC *vec = vec_new(sizeof(int*), (destroy_func_t)int_ptr_destroy);
+    int *p;
+    
+    for (int i = 0; i < 100; i++) {
+        p = cstl_malloc(sizeof(int));
+        *p = i + 1;
+        vec_push_back(vec, &p);
+    }
+
+    ck_assert_int_eq(1, **(int**)vec_get(vec, 0));
+
+    vec_free(vec);
+    ck_assert_no_leak(); // 只要断言成功，则说明每个元素的destroy函数都被调用了
 }
 END_TEST
 
@@ -856,6 +899,7 @@ START_DEFINE_SUITE(vec)
     TEST(test_vec_type_macro)
     TEST(test_struct_vec)
     TEST(test_bin_find)
+    TEST(test_destory_func)
 END_DEFINE_SUITE()
 
 #undef ARRAY_SIZE

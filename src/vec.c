@@ -10,7 +10,7 @@
 #include <string.h>
 
 #include "vec.h"
-#include "debug.h"
+#include "leak.h"
 
 static inline void 
 __free(void *ptr)

@@ -6,12 +6,7 @@
 */
 #include <check_util.h>
 
-// 强制开启调试功能
-#ifdef NDEBUG
-#undef NDEBUG
-#endif
-
-#include "debug.h"
+#include "test_common.h"
 
 // 检测内存分配是否成功
 START_TEST(test_cstl_malloc) {
@@ -21,6 +16,8 @@ START_TEST(test_cstl_malloc) {
 
     // 防止内存泄露
     cstl_free(d);
+
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -31,6 +28,8 @@ START_TEST(test_cstl_free) {
 
     d = (int*)cstl_malloc(sizeof(int));
     cstl_free(d); //对正常值进行free
+
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -57,6 +56,7 @@ START_TEST(test_cstl_leak_test) {
     }
     ck_assert_int_eq(0, cstl_leak_test(0));
 
+    ck_assert_no_leak();
 }
 END_TEST
 

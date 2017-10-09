@@ -58,7 +58,7 @@ typedef void (*destroy_func_t)(void *value);
 #define CSTL_UNSIGNED_CMP_FUNC(type) CSTL_NUM_CMP_FUNC(type)
 
 #define __CSTL_DECLARE_TYPE_CMP_FUNC(type) \
-    int __cstl_##type##_cmp_func(type *lhv, type *rhv)
+    CSTL_LIB int __cstl_##type##_cmp_func(type *lhv, type *rhv)
 
 // 声明常见的比较函数，定义位于cstl_stddef.c文件中
 __CSTL_DECLARE_TYPE_CMP_FUNC(char);
@@ -71,16 +71,26 @@ __CSTL_DECLARE_TYPE_CMP_FUNC(double);
 #undef __CSTL_DECLARE_TYPE_CMP_FUNC
 
 
-#define CSTL_NUM_HASH_FUNC(type) (&((hash_func_t)__cstl_##type##_hash_func))
-//#define CSTL_UNSIGNED_HASH_FUNC (&((hash_func_t)__cstl_unsigned_##type##_hash_func))
+#define CSTL_NUM_HASH_FUNC(type) ((hash_func_t)&__cstl_##type##_hash_func)
 #define CSTL_UNSIGNED_HASH_FUNC(type) CSTL_NUM_HASH_FUNC(type)
 
+#define CSTL_PTR_HASH_FUNC() ((hash_func_t)&__cstl_ptr_hash_func)
 
-//CSTL_UNSIGNED_HASH_FUNC(char)
-//CSTL_UNSIGNED_HASH_FUNC(short)
-//CSTL_UNSIGNED_HASH_FUNC(int)
-//CSTL_UNSIGNED_HASH_FUNC(long)
+#define __CSTL_DECLARE_TYPE_HASH_FUNC(type) \
+    CSTL_LIB unsigned int __cstl_##type##_hash_func(void *)
 
+__CSTL_DECLARE_TYPE_HASH_FUNC(char);
+__CSTL_DECLARE_TYPE_HASH_FUNC(short);
+__CSTL_DECLARE_TYPE_HASH_FUNC(int);
+__CSTL_DECLARE_TYPE_HASH_FUNC(long);
+__CSTL_DECLARE_TYPE_HASH_FUNC(float);
+__CSTL_DECLARE_TYPE_HASH_FUNC(double);
+
+CSTL_LIB unsigned int __cstl_ptr_hash_func(void *);
+
+#undef __CSTL_DECLARE_TYPE_HASH_FUNC
+
+CSTL_LIB unsigned int __cstl_str_hash_func(void *);
 #define CSTL_STR_HASH_FUNC (&__cstl_str_hash_func)
 
 // 主要是为了兼容非c99的编译器

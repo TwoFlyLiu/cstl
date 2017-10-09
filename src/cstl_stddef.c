@@ -5,8 +5,7 @@
 * Create time: 2017 10 08 07:45:38
 */
 #include <math.h>
-
-
+#include <sys/types.h>
 
 // 定义有符号整数的比较函数
 #define __CSTL_DEFINE_SIGNED_INTEGER_NUM_CMP_FUNC(type) \
@@ -79,6 +78,10 @@ void __cstl_destroy_func(void *value)
     value = NULL; //镇压编译器警告
 }
 
+unsigned int __cstl_ptr_hash_func(void *ptr)
+{
+    return (unsigned int)(uintptr_t)ptr;
+}
 
 #undef __CSTL_DEFINE_SIGNED_INTEGER_NUM_CMP_FUNC
 /*#undef __CSTL_DEFINE_UNSIGNED_INTEGER_NUM_CMP_FUNC*/

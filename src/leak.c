@@ -10,8 +10,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <pthread.h>
 
-#include "debug.h"
+#include "leak.h"
 
 #define MAX_BUCKETS 1024
 #define EXPRESSION_MAX 200
@@ -28,17 +29,42 @@ typedef struct memory_record_node {
 
 // 因为是静态的，所以初始化内部成员为NULL
 static memory_record_node_t * memory_record_lists[MAX_BUCKETS];
+static pthread_mutex_t lists_mutex = PTHREAD_MUTEX_INITIALIZER;
+static bool auto_test_first_called = true;
+static bool auto_test_enabled = false;
 
 static inline memory_record_node_t *
 __malloc_memory_record_node(unsigned int size, const char *fname, int line, const char *expression);
 
 static inline void memory_record_lists_insert(memory_record_node_t *record_node);
 static inline void memory_record_lists_remove(void *me);
-static inline int memory_record_lists_leak_test(int verbose);
+static inline int memory_record_lists_leak_test(bool verbose);
+
 
 // 以分配内存值的地址来作为key计算hash值
 static inline unsigned int ptr_hash_value(void *memory);
 
+static void on_auto_test()
+{
+    int leak_count;
+
+    if (auto_test_enabled) {
+        leak_count = __cstl_leak_test(true);
+        if (leak_count == 0) {
+            printf("no leak!\n");
+        }
+    }
+}
+
+CSTL_EXPORT void __cstl_leak_auto_test(bool enable)
+{
+    auto_test_enabled = enable;
+
+    if (auto_test_first_called) {
+        auto_test_first_called = false;
+        atexit(on_auto_test);
+    }
+}
 
 CSTL_EXPORT void *
 __cstl_malloc(unsigned int size, const char *fname, int line, const char *expression)
@@ -56,15 +82,9 @@ __cstl_free(void *mem)
     memory_record_lists_remove(mem);
 }
 
-CSTL_EXPORT int __cstl_leak_test(int verbose)
+CSTL_EXPORT int __cstl_leak_test(bool verbose)
 {
     return memory_record_lists_leak_test(verbose);
-}
-
-CSTL_EXPORT int __cstl_no_leak(int verbose)
-{
-    verbose = 0;
-    return 0;
 }
 
 static inline memory_record_node_t *
@@ -80,10 +100,13 @@ __malloc_memory_record_node(unsigned int size, const char *fname, int line, cons
     return node;
 }
 
+// 支持多线程
 static inline void memory_record_lists_insert(memory_record_node_t *record_node)
 {
     unsigned int hash_val;
     memory_record_node_t *last_node;
+
+    pthread_mutex_lock(&lists_mutex);
 
     // 获取hash值
     hash_val = ptr_hash_value(record_node->memory) % MAX_BUCKETS;
@@ -102,6 +125,8 @@ static inline void memory_record_lists_insert(memory_record_node_t *record_node)
     } else {
         memory_record_lists[hash_val] = record_node;
     }
+
+    pthread_mutex_unlock(&lists_mutex);
 }
 
 static inline void memory_record_lists_remove(void *mem)
@@ -109,6 +134,8 @@ static inline void memory_record_lists_remove(void *mem)
     unsigned int hash_val;
     memory_record_node_t *node;
     memory_record_node_t *prev_node = NULL;
+
+    pthread_mutex_lock(&lists_mutex);
 
     // 获取hash值
     hash_val = ptr_hash_value(mem) % MAX_BUCKETS;
@@ -134,16 +161,21 @@ static inline void memory_record_lists_remove(void *mem)
     // 释放内存
     free(node->memory);
     free(node);
+
+    pthread_mutex_unlock(&lists_mutex);
 }
 
 static inline void memory_record_node_report_leak_info(memory_record_node_t *node);
-static inline int memory_record_lists_leak_test(int verbose)
+static inline int memory_record_lists_leak_test(bool verbose)
 {
     int i;
     memory_record_node_t *node;
     int leak_count = 0;
     int total_leak_memory = 0;
 
+    pthread_mutex_lock(&lists_mutex);
+
+    // verbose是全局变量
     for (i = 0; i < MAX_BUCKETS; i++) {
         node = memory_record_lists[i];
         while (node) {
@@ -159,6 +191,8 @@ static inline int memory_record_lists_leak_test(int verbose)
     if (verbose && leak_count > 0) {
         printf("total leak count: %d, total leak memory: %d bytes\n", leak_count, total_leak_memory);
     }
+
+    pthread_mutex_unlock(&lists_mutex);
     return leak_count;
 }
 

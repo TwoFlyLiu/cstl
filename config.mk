@@ -1,5 +1,5 @@
 vpath %.c src:test
-vpath %.h include
+vpath %.h include:test
 vpath %.o build
 vpath %.d dep
 vpath %.a lib

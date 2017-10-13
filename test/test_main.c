@@ -10,6 +10,7 @@ DECLARE_SUITE(leak);
 DECLARE_SUITE(vec);
 DECLARE_SUITE(hmap);
 DECLARE_SUITE(hset);
+DECLARE_SUITE(str);
 
 // 使用END_CHECK_MAIN_AFTER来当所有测试都结束的时候，执行检测操作
 // 对于check, 每个test的执行环境都是隔离的，他们的运行环境是
@@ -22,5 +23,6 @@ START_CHECK_MAIN(cstl)
     SUITE(vec)
     SUITE(hmap)
     SUITE(hset)
+    SUITE(str)
 END_CHECK_MAIN()
 

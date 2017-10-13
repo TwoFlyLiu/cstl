@@ -11,8 +11,6 @@
 #include "vec.h"
 #include "test_common.h"
 
-#define ARRAY_SIZE(array, type) ((int)(sizeof(array) / sizeof(type)))
-
 START_TEST(test_new) {
     VEC *vec = vec_new(sizeof(int), NULL); //默认元素原谅是10
     ck_assert(vec != NULL);

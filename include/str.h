@@ -48,14 +48,24 @@ CSTL_LIB str_t* str_insert(str_t *str, int pos, const char *new_str);
 // 获取某个字符(因为一个字符可能有多个字节，所以返回str_t)
 CSTL_LIB str_t* str_at(str_t *str, int index);
 
+// 相对于str_at，使用栈来存储性能比较好
+CSTL_LIB int str_at_buf(str_t *str, int index, char *buf, int buflen,
+        int *err);
+
 // 获取单个字节（有可能数据不完整）
 CSTL_LIB char str_at_byte(str_t *str, int index);
 
 // 返回子字符集
 CSTL_LIB str_t* str_sub(str_t *str, int offset, int length);
 
+CSTL_LIB int str_sub_buf(str_t *str, int offset, int length,
+        char *buf, int buflen, int *err);
+
 // 返回子字节符, offset单位是字节， length单位也是字节
 CSTL_LIB str_t* str_sub_str(str_t *str, int offset, int length);
+CSTL_LIB int str_sub_str_buf(str_t *str, int offset, int length,
+        char *buf, int buflen, int *err);
+
 
 // 去除收尾空白字符
 CSTL_LIB str_t* str_trim(str_t *str);

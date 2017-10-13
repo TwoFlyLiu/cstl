@@ -9,6 +9,7 @@
 #include <assert.h>
 #include "test_common.h"
 #include <regex.h>
+#include <errno.h>
 #include "str.h"
 
 START_TEST(test_new_free) {
@@ -139,6 +140,38 @@ START_TEST(test_sub) {
     ck_assert_str_eq("llo ", str_c_str(sub2));
     str_free(sub2);
 
+    str_free(sub);
+
+    str_free(str);
+
+    // 测试无效偏移和长度情况
+    str = str_new_from("我是中国人");
+
+    // offset 无效
+    sub = str_sub(str, -1, str_char_size(str));
+    ck_assert_str_eq(str_c_str(str), str_c_str(sub));
+    str_free(sub);
+
+    sub = str_sub(str, str_char_size(str), str_char_size(str));
+    ck_assert_str_eq("", str_c_str(sub));
+    ck_assert_int_eq(0, str_byte_size(sub));
+    str_free(sub);
+    
+    // length 无效
+    sub = str_sub(str, 0, -1);
+    ck_assert_str_eq("", str_c_str(sub));
+    ck_assert_int_eq(0, str_byte_size(sub));
+    str_free(sub);
+
+    sub = str_sub(str, 2, 100);
+    ck_assert_str_eq("中国人", str_c_str(sub));
+    ck_assert_int_eq(3, str_char_size(sub));
+    str_free(sub);
+
+    // 两者都无效
+    sub = str_sub(str, 200, 200);
+    ck_assert_str_eq("", str_c_str(sub));
+    ck_assert_int_eq(0, str_byte_size(sub));
     str_free(sub);
 
     str_free(str);
@@ -367,6 +400,113 @@ START_TEST(test_insert) {
     ck_assert_str_eq("zzabhjjellokkqq", str_c_str(str));
 
     str_free(str);
+
+    ck_assert_no_leak();
+}
+END_TEST
+
+START_TEST(test_sub_buf) {
+    str_t *str = str_new_from("hello");
+    char long_buf[200];
+    int err = 0;
+    int nread;
+
+                
+    // 足够长(缓冲区长度只有大于 子字符串的长度，才能够完整的获取整个字符串)
+    nread = str_sub_str_buf(str, 1, 2, long_buf, 200, &err);
+    ck_assert_int_eq(strlen("el"), nread);
+    ck_assert_str_eq("el", long_buf);
+    ck_assert(0 == err);
+
+    // 短
+    nread = str_sub_str_buf(str, 1, 3, long_buf, 2, &err);
+    ck_assert_int_eq(strlen("e"), nread);
+    ck_assert_str_eq("e", long_buf);
+    ck_assert_int_eq(ENOMEM, err);
+
+    // 相等
+    nread = str_sub_str_buf(str, 1, 3, long_buf, 3, &err);
+    ck_assert_int_eq(strlen("el"), nread);
+    ck_assert_str_eq("el", long_buf);
+    ck_assert(ENOMEM == err);
+
+    // buf为NULL, 返回包含'\0'的缓冲区容量
+    nread = str_sub_str_buf(str, 1, 3, NULL, 3, &err);
+    ck_assert_int_eq(nread, 3 + 1);
+    ck_assert(0 == err);
+
+    nread = str_sub_str_buf(str, str_byte_size(str) - 2, 100, NULL, 3, &err);
+    ck_assert_int_eq(nread, 2 + 1);
+    ck_assert(0 == err);
+
+    nread = str_sub_str_buf(str, str_byte_size(str) - 2, 100, long_buf, 3, &err);
+    ck_assert_int_eq(nread, 2);
+    ck_assert_str_eq("lo", long_buf);
+    ck_assert(0 == err);
+
+    str_free(str);
+
+    // 测试str_sub_buf
+    str = str_new_from("abc中国你好kk");
+    // 正面测试
+    // 
+    // 缓冲区足够长
+    nread = str_sub_buf(str, 3, 2, long_buf, ARRAY_SIZE(long_buf, char), &err);
+    ck_assert_str_eq("中国", long_buf);
+    ck_assert_int_eq(nread, strlen("中国"));
+    ck_assert_int_eq(0, err);
+
+    // 缓冲区短了(应该需要6，但是只提供4个)
+    nread = str_sub_buf(str, 3, 3, long_buf, strlen("中国") + 1, &err);
+    ck_assert_str_eq("中国", long_buf);
+    ck_assert_int_eq(nread, strlen("中国"));
+    ck_assert_int_eq(ENOMEM, err);
+
+    // buf为NULL
+    nread = str_sub_buf(str, 3, 2, NULL, strlen("中") + 1, &err);
+    ck_assert_int_eq(nread, strlen("中国") + 1);
+    ck_assert_int_eq(0, err);
+
+    str_free(str);
+    ck_assert_no_leak();
+}
+END_TEST
+
+START_TEST(test_at_buf) {
+    str_t *str = str_new_from("hello,我是中国人haha");
+    char buf[100];
+    int nread, err;
+    
+    nread = str_at_buf(str, 1, buf, 100, &err);
+    ck_assert_int_eq(1, nread);
+    ck_assert_str_eq("e", buf);
+    ck_assert_int_eq(0, err);
+
+    // 缓冲区长度足够
+    nread = str_at_buf(str, 6, buf, 100, &err);
+    ck_assert_int_eq(strlen("我"), nread);
+    ck_assert_str_eq("我", buf);
+    ck_assert_int_eq(0, err);
+
+    // 缓冲区长度相等, str_at_buf不允许截断
+    nread = str_at_buf(str, 6, buf, strlen("我"), &err);
+    ck_assert_int_eq(0, nread);
+    ck_assert_str_eq("", buf);
+    ck_assert_int_eq(ENOMEM, err);
+
+    // 缓冲区长度过短
+    nread = str_at_buf(str, 6, buf, strlen("我") - 1, &err);
+    ck_assert_int_eq(0, nread);
+    ck_assert_str_eq("", buf);
+    ck_assert_int_eq(ENOMEM, err);
+
+    // 当buf为NULL，则返回所需缓冲区的尺寸
+    nread = str_at_buf(str, 6, NULL, 0, &err);
+    ck_assert_int_eq(nread, strlen("我") + 1);
+    ck_assert_int_eq(0, err);
+
+    str_free(str);
+    ck_assert_no_leak();
 }
 END_TEST
 
@@ -375,7 +515,9 @@ START_DEFINE_SUITE(str)
     TEST(test_size)
     TEST(test_append)
     TEST(test_at)
+    TEST(test_at_buf)
     TEST(test_sub)
+    TEST(test_sub_buf)
     TEST(test_trim)
     TEST(test_cmp)
     TEST(test_detect)

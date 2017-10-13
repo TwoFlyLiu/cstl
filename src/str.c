@@ -11,6 +11,7 @@
 #include <strings.h>
 #include <cstl/vec.h>
 #include <regex.h>
+#include <errno.h>
 
 #include <stdio.h>
 
@@ -192,9 +193,16 @@ CSTL_LIB str_t* str_insert(str_t *str, int pos, const char *new_str)
 }
 
 // 返回子字符集
-CSTL_LIB str_t* str_sub(str_t *str, int offset, int length)
+CSTL_EXPORT str_t* str_sub(str_t *str, int offset, int length)
 {
     int len;
+    int char_len;
+
+    assert(str);
+
+    char_len = str_char_size(str);
+    offset = (offset < 0 ? 0 : (offset >= char_len ? char_len : offset));
+    length = (length < 0 ? 0 : (length + offset  >= char_len ? char_len - offset : length));
 
     const char *beg = _str_offset(str->beg, offset);
     const char *end = _str_offset(beg, length);
@@ -212,6 +220,48 @@ CSTL_LIB str_t* str_sub(str_t *str, int offset, int length)
     return sub_str;
 }
 
+CSTL_EXPORT int str_sub_buf(str_t *str, int offset, int length,
+        char *buf, int buflen, int *err)
+{
+    int char_len, len;
+
+    assert(str);
+    char_len = str_char_size(str);
+    offset = (offset < 0 ? 0 : (offset >= char_len ? char_len : offset));
+    length = (length < 0 ? 0 : (length + offset  >= char_len ? char_len - offset : length));
+
+    const char *beg = _str_offset(str->beg, offset);
+    const char *end = _str_offset(beg, length);
+    const char *pos = beg;
+
+    *err = 0;
+    len = end - beg;
+    if (NULL == buf) {
+        return len + 1;
+    }
+
+    if (buflen > len) {
+        strncpy(buf, beg, len);
+        *(buf + len) = '\0';
+        return len;
+    }
+
+    len = 0;
+    // 下面要探测到满足缓冲区的最长utf8字符串
+    while ((pos = _str_offset(pos, 1))) {
+        if (pos - beg >= buflen) {
+            break;
+        }
+        len = pos - beg;
+    }
+
+    strncpy(buf, beg, len);
+    *(buf + len) = '\0';
+    *err = ENOMEM;
+
+    return len;
+}
+
 // 获取某个字符(因为一个字符可能有多个字节，所以返回str_t)
 // 无效index返回NULL
 CSTL_EXPORT str_t* str_at(str_t *str, int index)
@@ -222,8 +272,45 @@ CSTL_EXPORT str_t* str_at(str_t *str, int index)
     return str_sub(str, index, 1);
 }
 
+// 这儿规则，取一个字符的时候，不能被截断，所以缓冲区必须要足够大
+// 如果buf为NULL, 就返回index字符锁需要buf穿死去的尺寸
+CSTL_EXPORT int str_at_buf(str_t *str, int index, char *buf, int buflen,
+        int *err)
+{
+    const char *beg, *end;
+    int len;
+
+    assert(str);
+    
+    if (index < 0 || index >= (int)str_char_size(str)) {
+        *err = EINVAL;
+        return 0;
+    }
+
+    *err = 0;
+    beg = _str_offset(str->beg, index);
+    end = _str_offset(beg, 1);
+
+    len = end - beg;
+
+    // 如果buf为NULL, 就返回index字符锁需要buf穿死去的尺寸
+    if (NULL == buf) {
+        return len + 1;
+    }
+
+    *buf = '\0';
+    if (buflen <= len) {
+        *err = ENOMEM;
+        return 0;
+    }
+
+    strncpy(buf, beg, len);
+    *(buf + len) = '\0';
+    return len;
+}
+
 // 获取单个字节（有可能数据不完整）
-CSTL_LIB char str_at_byte(str_t *str, int index)
+CSTL_EXPORT char str_at_byte(str_t *str, int index)
 {
     assert(str);
 
@@ -621,9 +708,36 @@ CSTL_EXPORT str_t* str_sub_str(str_t *str, int offset, int length)
     return str_new_from_limit(str->beg + offset, length);
 }
 
+// 如果buflen 不够的话，那么就通过errno来返回一个值，表明缓冲区长度不足
+// 末尾即使buf长度不足，也会放入'\0', 只是有效值少一个
+CSTL_EXPORT int str_sub_str_buf(str_t *str, int offset, int length,
+        char *buf, int buflen, int *err)
+{
+    assert(str);
+
+    *err = 0;
+    offset = (offset < 0 ? 0 : (offset >= str->len ? str->len : offset));
+    length = (length < 0 ? 0 : (length + offset  >= str->len ? str->len - offset : length));
+
+    if (NULL == buf) {
+        return length + 1;
+    }
+    assert(str && buf && buflen > 0);
+
+    // 即使两者容量相同，因为会在末尾增加'\0', buf有效长度是buflen - 1
+    if (buflen <= length) {
+        length = buflen - 1;
+        *err = ENOMEM; //表明buf不是不够大不足
+    }
+
+    strncpy(buf, str->beg + offset, length);
+    *(buf + length) = '\0';
+
+    return length;
+}
+
 CSTL_EXPORT void str_ptr_destroy(str_t **str)
 {
     assert(*str);
     str_free(*str);
 }
-

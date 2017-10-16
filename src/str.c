@@ -18,11 +18,13 @@
 #include "cstl_stddef.h"
 #include "leak.h"
 #include "str.h"
+#include "wstr.h"
+#include "str_conv.h"
 
 struct CSTLString {
     char *beg;
-    int len;
-    int capacity;
+    int len; // 当前元素的长度
+    int capacity; //最多存放元素数目（包含'\0')
 };
 
 typedef struct CSTLString str_t;
@@ -31,7 +33,6 @@ typedef struct CSTLString str_t;
 
 // 居然有不清晰声明（在msys2中）
 int vsnprintf (char * s, size_t n, const char * format, va_list arg );
-static const char *_str_offset(const char *str, int offset);
 static str_t *_str_realloc(str_t *str, int new_capacity);
 
 CSTL_EXPORT str_t * str_new()
@@ -90,7 +91,7 @@ CSTL_EXPORT void str_free(str_t *str)
 }
 
 // 返回字节数目(byte)
-CSTL_EXPORT size_t str_byte_size(str_t *str)
+CSTL_EXPORT size_t str_byte_size(const str_t *str)
 {
     assert(str);
     return str->len;
@@ -98,44 +99,21 @@ CSTL_EXPORT size_t str_byte_size(str_t *str)
 
 
 // 返回字符数目（一个字符可能有多个字节）
-CSTL_EXPORT size_t str_char_size(str_t *str)
+CSTL_EXPORT size_t str_char_size(const str_t *str)
 {
-    int len = 0;
-    const char *cstr = str->beg;
+    assert(str);
+    wstr_t *wstr = str_to_wstr(str);
+    size_t len = wstr_size(wstr);
+    wstr_free(wstr);
 
-    while (*cstr) {
-        len++;
-        cstr = _str_offset(cstr, 1);
-    }
     return len;
 }
 
 // 内部还可以使用空闲缓存的字节数目
-CSTL_EXPORT size_t str_capacity(str_t *str)
+CSTL_EXPORT size_t str_capacity(const str_t *str)
 {
     assert(str);
     return str->capacity;
-}
-
-static const char *_str_offset(const char *str, int offset)
-{
-    unsigned char ch;
-    int hbit;
-
-    // 一次循环相当于偏移一次
-    while (*str && offset > 0) {
-        ch = (unsigned char)*str;
-        hbit = 0;
-        while (ch & 0x80) {
-            hbit++;
-            ch = (ch & 0x7f) << 1;
-        }
-        hbit = (hbit > 0 ? hbit : 1);
-        str += hbit;
-        -- offset;
-    }
-
-    return str;
 }
 
 // 增加 添加字符串
@@ -148,7 +126,7 @@ CSTL_EXPORT str_t* str_append(str_t *str, const char *raw)
 
     len = strlen(raw);
     if (str->capacity - str->len <= len) {
-        str = _str_realloc(str, sizeof(char) * (str->capacity + len) * 2 + 1 * sizeof(char));
+        str = _str_realloc(str, (str->capacity + len) * 2 + 1);
     }
 
     strcpy(str->beg + str->len, raw);
@@ -192,129 +170,12 @@ CSTL_LIB str_t* str_insert(str_t *str, int pos, const char *new_str)
     return str;
 }
 
-// 返回子字符集
-CSTL_EXPORT str_t* str_sub(str_t *str, int offset, int length)
-{
-    int len;
-    int char_len;
-
-    assert(str);
-
-    char_len = str_char_size(str);
-    offset = (offset < 0 ? 0 : (offset >= char_len ? char_len : offset));
-    length = (length < 0 ? 0 : (length + offset  >= char_len ? char_len - offset : length));
-
-    const char *beg = _str_offset(str->beg, offset);
-    const char *end = _str_offset(beg, length);
-
-
-    str_t * sub_str = (str_t*)cstl_malloc(sizeof(str_t));
-
-    len = end - beg;
-    sub_str->len = len;
-    sub_str->capacity = len * 2 + 1;
-    sub_str->beg = (char*)cstl_malloc(sizeof(char) * str->capacity);
-    strncpy(sub_str->beg, beg, len);
-    *(sub_str->beg + len) = '\0'; // 补上空白字符
-
-    return sub_str;
-}
-
-CSTL_EXPORT int str_sub_buf(str_t *str, int offset, int length,
-        char *buf, int buflen, int *err)
-{
-    int char_len, len;
-
-    assert(str);
-    char_len = str_char_size(str);
-    offset = (offset < 0 ? 0 : (offset >= char_len ? char_len : offset));
-    length = (length < 0 ? 0 : (length + offset  >= char_len ? char_len - offset : length));
-
-    const char *beg = _str_offset(str->beg, offset);
-    const char *end = _str_offset(beg, length);
-    const char *pos = beg;
-
-    *err = 0;
-    len = end - beg;
-    if (NULL == buf) {
-        return len + 1;
-    }
-
-    if (buflen > len) {
-        strncpy(buf, beg, len);
-        *(buf + len) = '\0';
-        return len;
-    }
-
-    len = 0;
-    // 下面要探测到满足缓冲区的最长utf8字符串
-    while ((pos = _str_offset(pos, 1))) {
-        if (pos - beg >= buflen) {
-            break;
-        }
-        len = pos - beg;
-    }
-
-    strncpy(buf, beg, len);
-    *(buf + len) = '\0';
-    *err = ENOMEM;
-
-    return len;
-}
-
-// 获取某个字符(因为一个字符可能有多个字节，所以返回str_t)
-// 无效index返回NULL
-CSTL_EXPORT str_t* str_at(str_t *str, int index)
-{
-    if (index < 0 || index >= (int)str_char_size(str)) {
-        return NULL;
-    }
-    return str_sub(str, index, 1);
-}
-
-// 这儿规则，取一个字符的时候，不能被截断，所以缓冲区必须要足够大
-// 如果buf为NULL, 就返回index字符锁需要buf穿死去的尺寸
-CSTL_EXPORT int str_at_buf(str_t *str, int index, char *buf, int buflen,
-        int *err)
-{
-    const char *beg, *end;
-    int len;
-
-    assert(str);
-    
-    if (index < 0 || index >= (int)str_char_size(str)) {
-        *err = EINVAL;
-        return 0;
-    }
-
-    *err = 0;
-    beg = _str_offset(str->beg, index);
-    end = _str_offset(beg, 1);
-
-    len = end - beg;
-
-    // 如果buf为NULL, 就返回index字符锁需要buf穿死去的尺寸
-    if (NULL == buf) {
-        return len + 1;
-    }
-
-    *buf = '\0';
-    if (buflen <= len) {
-        *err = ENOMEM;
-        return 0;
-    }
-
-    strncpy(buf, beg, len);
-    *(buf + len) = '\0';
-    return len;
-}
-
 // 获取单个字节（有可能数据不完整）
 CSTL_EXPORT char str_at_byte(str_t *str, int index)
 {
     assert(str);
 
-    if (str->len < index || index < 0) {
+    if (index > str->len || index < 0) {
         return (char)-1;
     }
 
@@ -466,7 +327,7 @@ CSTL_EXPORT char*  str_c_str(str_t *str)
 }
 
 // 计算hash值
-CSTL_EXPORT unsigned int    hash_code(str_t *str)
+CSTL_EXPORT unsigned int    str_hash_code(str_t *str)
 {
     unsigned int hash = 0;
 
@@ -476,6 +337,14 @@ CSTL_EXPORT unsigned int    hash_code(str_t *str)
         hash += (unsigned char)*(str->beg + i);
     }
     return hash;
+}
+
+CSTL_EXPORT unsigned int   str_ptr_hash_code(str_t **str)
+{
+    if (NULL == *str) {
+        return (unsigned int)0;
+    }
+    return str_hash_code(*str);
 }
 
 // 查找
@@ -671,9 +540,10 @@ CSTL_LIB bool   str_contains(const str_t *str, const char *sub)
 
 static str_t *_str_realloc(str_t *str, int new_capacity)
 {
-    char *new_buf = (char*)cstl_malloc(new_capacity);
-    int resize = (new_capacity - 1) < str->len ? new_capacity - 1 : str->len; //去最小的长度进行拷贝
+    char *new_buf = (char*)cstl_malloc(new_capacity * sizeof(char));
+    int resize = new_capacity <= str->len ? new_capacity - 1 : str->len; //去最小的长度进行拷贝
     strncpy(new_buf, str->beg, resize);
+    *(new_buf + resize) = '\0';
 
     cstl_free(str->beg); //销毁原来的
     str->beg = new_buf;
@@ -740,4 +610,29 @@ CSTL_EXPORT void str_ptr_destroy(str_t **str)
 {
     assert(*str);
     str_free(*str);
+}
+
+// 切割行
+CSTL_EXPORT VEC*   str_split_lines(str_t *str)
+{
+    return str_split(str, "\n");
+}
+
+// 此方法主要是为了预分配缓存而设置
+CSTL_EXPORT str_t* str_resize(str_t *str, size_t new_size)
+{
+    assert(str);
+
+    if (new_size >= str_capacity(str)) {
+        _str_realloc(str, new_size + 1);
+    }
+
+    // 3, 4, 1
+    if (new_size > (size_t)str->len) {
+        memset(str->beg + str->len, 0, new_size - str->len);
+    }
+
+    *(str->beg + new_size) = '\0'; //容量变化，但是字符串的长度病没有发生变化
+    str->len = ((size_t)str->len < new_size) ? str->len : new_size;
+    return str;
 }

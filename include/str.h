@@ -4,18 +4,12 @@
 #include "cstl_stddef.h"
 #include "vec.h"
 
-///////////////////////////////////////////////////////////////////////////
-// 本str api，除了str_sub, str_char_size， 使用的单位是utf8字符的单位
-// 比如 '中', 会被当成一个字符，对于除了这两个方法以外的方法，使用的
-// 单位都是字节单位，即使1, 和原始string.h返回的单位一直。
+// str_t 表示编译系统默认支持的字符串类型，对于windows, 一般是GBK类型，对于linux或者msys一般是utf8类型，
+// 所以他的类型是不固定的，原来的版本因为是在msys平台上，以前假设他是utf8字符串，但是这个版本这个假设
+// 不存在了，真正的utf8字符集在u8_str_t中，所以里面关于求字符长度的相关api，也会进行相应调整。
 // 
-// TODO: 可以设计一个utf8_str来全面支持utf8, 即将本api的单位全部
-// 转换为utf8的单位
-// 思路：可以利用str_t的api, 将utf8 api中的单位转化为byte的单位，然后调用对应的str_api，再将返回值转化为utf8单位
-//       要么重新完全实现，或许更加简单
-//       折中，具体api函数 哪种方便就使用哪种实现
-
-// 只是声明(至少c99是支持的)
+// 关于字符长度的api，为了和上一个版本兼容，仍然保留char_size, 移除了sub, sub_buf函数,推荐使用wstr_t来统一字符集处理，
+// 避免乱码问题。
 struct CSTLString;
 typedef struct CSTLString str_t;
 
@@ -31,13 +25,13 @@ void str_free(str_t *str);
 // 访问内部信息
 
 // 返回字节数目(byte)
-CSTL_LIB size_t str_byte_size(str_t *str);
+CSTL_LIB size_t str_byte_size(const str_t *str);
 
 // 返回字符数目（一个字符可能有多个字节）
-CSTL_LIB size_t str_char_size(str_t *str);
+CSTL_LIB size_t str_char_size(const str_t *str);
 
 // 内部还可以使用空闲缓存的字节数目
-CSTL_LIB size_t str_capacity(str_t *str);
+CSTL_LIB size_t str_capacity(const str_t *str);
 
 // 增加 添加字符串
 CSTL_LIB str_t* str_append(str_t *str, const char *raw);
@@ -45,27 +39,13 @@ CSTL_LIB str_t* str_append(str_t *str, const char *raw);
 // 在某个位置上进行插入
 CSTL_LIB str_t* str_insert(str_t *str, int pos, const char *new_str);
 
-// 获取某个字符(因为一个字符可能有多个字节，所以返回str_t)
-CSTL_LIB str_t* str_at(str_t *str, int index);
-
-// 相对于str_at，使用栈来存储性能比较好
-CSTL_LIB int str_at_buf(str_t *str, int index, char *buf, int buflen,
-        int *err);
-
 // 获取单个字节（有可能数据不完整）
 CSTL_LIB char str_at_byte(str_t *str, int index);
-
-// 返回子字符集
-CSTL_LIB str_t* str_sub(str_t *str, int offset, int length);
-
-CSTL_LIB int str_sub_buf(str_t *str, int offset, int length,
-        char *buf, int buflen, int *err);
 
 // 返回子字节符, offset单位是字节， length单位也是字节
 CSTL_LIB str_t* str_sub_str(str_t *str, int offset, int length);
 CSTL_LIB int str_sub_str_buf(str_t *str, int offset, int length,
         char *buf, int buflen, int *err);
-
 
 // 去除收尾空白字符
 CSTL_LIB str_t* str_trim(str_t *str);
@@ -78,6 +58,9 @@ CSTL_LIB str_t* str_trim_right(str_t *str);
 
 // 分割字符集
 CSTL_LIB VEC*   str_split(str_t *str, const char *regex);
+
+// 切割行
+CSTL_LIB VEC*   str_split_lines(str_t *str);
 
 // 比较字符集
 CSTL_LIB int    str_cmp(str_t *str, const char *rhv);
@@ -106,7 +89,8 @@ CSTL_LIB bool   str_starts_with(const str_t *str, const char *value);
 CSTL_LIB char*  str_c_str(str_t *str);
 
 // 计算hash值
-CSTL_LIB unsigned int    hash_code(str_t *str);
+CSTL_LIB unsigned int    str_hash_code(str_t *str);
+CSTL_LIB unsigned int    str_ptr_hash_code(str_t **str);
 
 // 方将直接将原始字符串赋值给str_t*类型
 CSTL_LIB str_t* str_assign(str_t *str, const char *rhv);
@@ -124,6 +108,9 @@ CSTL_LIB str_t*  str_replace_first(str_t *str, int offset,  const char *old_str,
 
 CSTL_LIB str_t* str_to_lowercase(str_t *str);
 CSTL_LIB str_t* str_to_uppercase(str_t *str);
+
+// 减少或者扩大容量
+CSTL_LIB str_t* str_resize(str_t *str, size_t new_size);
 
 // 便利方法，方便销毁在容器中的str_t*
 CSTL_LIB void str_ptr_destroy(str_t **str);

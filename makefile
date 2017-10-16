@@ -23,7 +23,7 @@ $(lib): $(lib_objects)
 	$(AR) $(ARFLAGS) $@ $^
 
 # 生成测试程序
-$(test): LOADLIBES= -lcstl -lcheck 
+$(test): LOADLIBES= -lcstl -lcheck -liconv
 $(test): LDFLAGS = -Llib
 $(test): $(test_objects) $(lib)
 	$(CC) $(LDFLAGS) -o $(test) $(test_objects) $(LOADLIBES) $(LDLIBS)

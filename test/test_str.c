@@ -81,103 +81,6 @@ START_TEST(test_append) {
 }
 END_TEST
 
-START_TEST(test_at) {
-    str_t *str = str_new_from("hello中国，你好，哈哈kk");
-    str_t *ch;
-
-    ck_assert_int_eq((int)'h',  str_at_byte(str, 0));
-    ck_assert_int_eq((int)'o',  str_at_byte(str, 4));
-    ck_assert_int_eq(-1, str_at_byte(str, 100)); //对于不存在的索引at_byte返回-1
-
-    ch = str_at(str, 5);
-    ck_assert_str_eq("中", str_c_str(ch));
-    str_free(ch);
-    ck_assert(NULL == str_at(str, -1));
-    ck_assert(NULL == str_at(str, 100));
-
-    str_free(str);
-    ck_assert_no_leak();
-}
-END_TEST
-
-START_TEST(test_sub) {
-    str_t *str = str_new_from("hello中国world");
-    str_t *sub, *sub2;
-    
-    sub = str_sub(str, 0, 5);
-    ck_assert_str_eq("hello", str_c_str(sub));
-    str_free(sub);
-
-    sub = str_sub(str, 1, 5);
-    ck_assert_str_eq("ello中", str_c_str(sub));
-    str_free(sub);
-
-    // 对于偏移小于0， 则就按照0处理
-    sub = str_sub(str, -1, 5);
-    ck_assert_str_eq("hello", str_c_str(sub));
-    str_free(sub);
-
-    sub = str_sub(str, 5, 2);
-    ck_assert_str_eq("中国", str_c_str(sub));
-    str_free(sub);
-
-    // 对于长度大于总长度，则按照最大长度进行处理
-    sub = str_sub(str, 5, 100);
-    ck_assert_str_eq("中国world", str_c_str(sub));
-    str_free(sub);
-
-    sub = str_new_from("hello world");
-
-    sub2 = str_sub_str(sub, -1, 2);
-    ck_assert_str_eq("he", str_c_str(sub2));
-    str_free(sub2);
-
-    sub2 = str_sub_str(sub, 3, 100);
-    ck_assert_str_eq("lo world", str_c_str(sub2));
-    str_free(sub2);
-
-    sub2 = str_sub_str(sub, 2, 4);
-    ck_assert_str_eq("llo ", str_c_str(sub2));
-    str_free(sub2);
-
-    str_free(sub);
-
-    str_free(str);
-
-    // 测试无效偏移和长度情况
-    str = str_new_from("我是中国人");
-
-    // offset 无效
-    sub = str_sub(str, -1, str_char_size(str));
-    ck_assert_str_eq(str_c_str(str), str_c_str(sub));
-    str_free(sub);
-
-    sub = str_sub(str, str_char_size(str), str_char_size(str));
-    ck_assert_str_eq("", str_c_str(sub));
-    ck_assert_int_eq(0, str_byte_size(sub));
-    str_free(sub);
-    
-    // length 无效
-    sub = str_sub(str, 0, -1);
-    ck_assert_str_eq("", str_c_str(sub));
-    ck_assert_int_eq(0, str_byte_size(sub));
-    str_free(sub);
-
-    sub = str_sub(str, 2, 100);
-    ck_assert_str_eq("中国人", str_c_str(sub));
-    ck_assert_int_eq(3, str_char_size(sub));
-    str_free(sub);
-
-    // 两者都无效
-    sub = str_sub(str, 200, 200);
-    ck_assert_str_eq("", str_c_str(sub));
-    ck_assert_int_eq(0, str_byte_size(sub));
-    str_free(sub);
-
-    str_free(str);
-    ck_assert_no_leak();
-}
-END_TEST
 
 START_TEST(test_trim) {
     str_t *str = str_new_from("  \thello xx \t     ");
@@ -405,105 +308,87 @@ START_TEST(test_insert) {
 }
 END_TEST
 
-START_TEST(test_sub_buf) {
-    str_t *str = str_new_from("hello");
-    char long_buf[200];
-    int err = 0;
-    int nread;
+// 内部使用split,对于复杂的就可以使用split来进行分割
+START_TEST(test_split_lines) {
+    str_t *str = str_new_from("hello world\nwelcome, lady and gentleman");
+    VEC *lines = str_split_lines(str);
 
-                
-    // 足够长(缓冲区长度只有大于 子字符串的长度，才能够完整的获取整个字符串)
-    nread = str_sub_str_buf(str, 1, 2, long_buf, 200, &err);
-    ck_assert_int_eq(strlen("el"), nread);
-    ck_assert_str_eq("el", long_buf);
-    ck_assert(0 == err);
+    ck_assert_int_eq(2, vec_size(lines));
+    ck_assert_str_eq("hello world", str_c_str(str_vec_get(lines, 0)));
+    ck_assert_str_eq("welcome, lady and gentleman", str_c_str(str_vec_get(lines, 1)));
 
-    // 短
-    nread = str_sub_str_buf(str, 1, 3, long_buf, 2, &err);
-    ck_assert_int_eq(strlen("e"), nread);
-    ck_assert_str_eq("e", long_buf);
-    ck_assert_int_eq(ENOMEM, err);
-
-    // 相等
-    nread = str_sub_str_buf(str, 1, 3, long_buf, 3, &err);
-    ck_assert_int_eq(strlen("el"), nread);
-    ck_assert_str_eq("el", long_buf);
-    ck_assert(ENOMEM == err);
-
-    // buf为NULL, 返回包含'\0'的缓冲区容量
-    nread = str_sub_str_buf(str, 1, 3, NULL, 3, &err);
-    ck_assert_int_eq(nread, 3 + 1);
-    ck_assert(0 == err);
-
-    nread = str_sub_str_buf(str, str_byte_size(str) - 2, 100, NULL, 3, &err);
-    ck_assert_int_eq(nread, 2 + 1);
-    ck_assert(0 == err);
-
-    nread = str_sub_str_buf(str, str_byte_size(str) - 2, 100, long_buf, 3, &err);
-    ck_assert_int_eq(nread, 2);
-    ck_assert_str_eq("lo", long_buf);
-    ck_assert(0 == err);
-
+    vec_free(lines);
     str_free(str);
 
-    // 测试str_sub_buf
-    str = str_new_from("abc中国你好kk");
-    // 正面测试
-    // 
-    // 缓冲区足够长
-    nread = str_sub_buf(str, 3, 2, long_buf, ARRAY_SIZE(long_buf, char), &err);
-    ck_assert_str_eq("中国", long_buf);
-    ck_assert_int_eq(nread, strlen("中国"));
-    ck_assert_int_eq(0, err);
+    str = str_new_from("hello world\r\n\r\nwelcome, lady and gentleman");
+    lines = str_split(str, "[\r\n]+"); //不但可以分行，而且还去除空白的行
 
-    // 缓冲区短了(应该需要6，但是只提供4个)
-    nread = str_sub_buf(str, 3, 3, long_buf, strlen("中国") + 1, &err);
-    ck_assert_str_eq("中国", long_buf);
-    ck_assert_int_eq(nread, strlen("中国"));
-    ck_assert_int_eq(ENOMEM, err);
+    ck_assert_int_eq(2, vec_size(lines));
+    ck_assert_str_eq("hello world", str_c_str(str_vec_get(lines, 0)));
+    ck_assert_str_eq("welcome, lady and gentleman", str_c_str(str_vec_get(lines, 1)));
 
-    // buf为NULL
-    nread = str_sub_buf(str, 3, 2, NULL, strlen("中") + 1, &err);
-    ck_assert_int_eq(nread, strlen("中国") + 1);
-    ck_assert_int_eq(0, err);
+    vec_free(lines);
+    str_free(str);
+    ck_assert_no_leak();
+}
+END_TEST
+
+START_TEST(test_resize) {
+    str_t *str = str_new_from("hello world");
+    int old_capacity = str_capacity(str);
+
+    // 元素数目减少
+    str_resize(str, 3);
+    ck_assert_str_eq("hel", str_c_str(str));
+    ck_assert_int_eq(3, str_byte_size(str));
+    ck_assert_int_eq(old_capacity, str_capacity(str));
+
+    // 元素数目大于原来的容量
+    str_resize(str, old_capacity);
+    ck_assert_str_eq("hel", str_c_str(str));
+    ck_assert_int_eq(3, str_byte_size(str));
+    ck_assert_int_eq(old_capacity + 1, str_capacity(str));
+
+    for (int i = 3; i < old_capacity + 1; i++) {
+        ck_assert_int_eq('\0', *(str_c_str(str) + i));
+    }
 
     str_free(str);
     ck_assert_no_leak();
 }
 END_TEST
 
-START_TEST(test_at_buf) {
-    str_t *str = str_new_from("hello,我是中国人haha");
-    char buf[100];
-    int nread, err;
-    
-    nread = str_at_buf(str, 1, buf, 100, &err);
-    ck_assert_int_eq(1, nread);
-    ck_assert_str_eq("e", buf);
-    ck_assert_int_eq(0, err);
+START_TEST(test_at) {
+    str_t *str = str_new_from("hello");
 
-    // 缓冲区长度足够
-    nread = str_at_buf(str, 6, buf, 100, &err);
-    ck_assert_int_eq(strlen("我"), nread);
-    ck_assert_str_eq("我", buf);
-    ck_assert_int_eq(0, err);
+    ck_assert_int_eq('h', str_at_byte(str, 0));
+    ck_assert_int_eq((char)-1, str_at_byte(str, -1));
+    ck_assert_int_eq((char)-1, str_at_byte(str, 100));
 
-    // 缓冲区长度相等, str_at_buf不允许截断
-    nread = str_at_buf(str, 6, buf, strlen("我"), &err);
-    ck_assert_int_eq(0, nread);
-    ck_assert_str_eq("", buf);
-    ck_assert_int_eq(ENOMEM, err);
+    str_free(str);
+    ck_assert_no_leak();
+}
+END_TEST
 
-    // 缓冲区长度过短
-    nread = str_at_buf(str, 6, buf, strlen("我") - 1, &err);
-    ck_assert_int_eq(0, nread);
-    ck_assert_str_eq("", buf);
-    ck_assert_int_eq(ENOMEM, err);
+START_TEST(test_sub_str) {
+    str_t *str = str_new_from("hello world, I am very happy");
+    str_t *sub = NULL;
 
-    // 当buf为NULL，则返回所需缓冲区的尺寸
-    nread = str_at_buf(str, 6, NULL, 0, &err);
-    ck_assert_int_eq(nread, strlen("我") + 1);
-    ck_assert_int_eq(0, err);
+    sub = str_sub_str(str, 0, 2);
+    ck_assert_str_eq("he", str_c_str(sub));
+    str_free(sub);
+
+    sub = str_sub_str(str, -1, 2);
+    ck_assert_str_eq("he", str_c_str(sub));
+    str_free(sub);
+
+    sub = str_sub_str(str, -1, 100);
+    ck_assert_str_eq("hello world, I am very happy", str_c_str(sub));
+    str_free(sub);
+
+    sub = str_sub_str(str, 100, 100);
+    ck_assert_str_eq("", str_c_str(sub));
+    str_free(sub);
 
     str_free(str);
     ck_assert_no_leak();
@@ -514,10 +399,6 @@ START_DEFINE_SUITE(str)
     TEST(test_new_free)
     TEST(test_size)
     TEST(test_append)
-    TEST(test_at)
-    TEST(test_at_buf)
-    TEST(test_sub)
-    TEST(test_sub_buf)
     TEST(test_trim)
     TEST(test_cmp)
     TEST(test_detect)
@@ -528,4 +409,8 @@ START_DEFINE_SUITE(str)
     TEST(test_assign)
     TEST(test_split)
     TEST(test_insert)
+    TEST(test_split_lines)
+    TEST(test_resize)
+    TEST(test_at)
+    TEST(test_sub_str)
 END_DEFINE_SUITE()

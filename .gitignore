@@ -4,3 +4,4 @@ lib/*.a
 test/*.exe
 .ycm_extra_conf.py
 *.stackdump
+ybtx.html

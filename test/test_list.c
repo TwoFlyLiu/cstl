@@ -413,20 +413,19 @@ START_TEST(test_erase) {
         list_push_back(list, &i);
     }
 
-    ck_assert_int_eq(0, *(int*)list_get(list, 0));
-    ck_assert_int_eq(1, *(int*)list_get(list, 1));
-    ck_assert_int_eq(2, *(int*)list_get(list, 2));
-    ck_assert_int_eq(3, *(int*)list_get(list, 3));
-    ck_assert_int_eq(4, *(int*)list_get(list, 4));
-    ck_assert_int_eq(5, *(int*)list_get(list, 5));
-    ck_assert_int_eq(6, *(int*)list_get(list, 6));
-    ck_assert_int_eq(7, *(int*)list_get(list, 7));
-    ck_assert_int_eq(8, *(int*)list_get(list, 8));
-    ck_assert_int_eq(9, *(int*)list_get(list, 9));
+    for (size_t i = 0; i < 10; i++) {
+        ck_assert_int_eq(i, *int_list_get(list, i));
+    }
 
     list_erase(list, 8);
     ck_assert_int_eq(9, *(int*)list_get(list, 8));
     ck_assert_int_eq(9, list_size(list));
+
+    // 使用erase_node
+    int data = 9;
+    list_node_t *node = list_find_node(list, &data, CSTL_NUM_CMP_FUNC(int));
+    list_remove_node(list, node);
+    ck_assert_int_eq(8, list_size(list));
 
     list_free(list);
     ck_assert_no_leak();

@@ -285,7 +285,11 @@ CSTL_LIB void list_remove(LIST *list, void *value, cmp_func_t compare)
 {
     assert(list && compare);
     list_node_t *node = list_find_node(list, value, compare);
+    list_remove_node(list, node);
+}
 
+CSTL_LIB void list_remove_node(LIST *list, list_node_t *node)
+{
     if (node == NULL) return;
     if (node == list->head) return list_pop_front(list);
     if (node == list->tail) return list_pop_back(list);

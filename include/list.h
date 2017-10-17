@@ -55,6 +55,7 @@ CSTL_LIB void list_pop_back(LIST *list);
 CSTL_LIB void list_pop_front(LIST *list);
 
 CSTL_LIB void list_remove(LIST *list, void *value, cmp_func_t compare); //移除第一个出现的值
+CSTL_LIB void list_remove_node(LIST *list, list_node_t *node);
 CSTL_LIB void list_erase(LIST *list, int index); //移除指定位置上的元素
 CSTL_LIB void list_clear(LIST *list); //移除内部所有元素
 

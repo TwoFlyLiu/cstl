@@ -1,5 +1,5 @@
-#ifndef INCLUDE_DEBUG_H_H
-#define INCLUDE_DEBUG_H_H
+#ifndef INCLUDE_LEAK_H_H
+#define INCLUDE_LEAK_H_H
 
 #include "cstl_stddef.h"
 

@@ -186,31 +186,31 @@ START_TEST(test_gbk_to_utf8) {
 }
 END_TEST
 
-START_TEST(test_part_invalid_gbk_to_utf8) {
-    FILE *fp = fopen("./ybtx.html", "r");
-    assert(fp && "open ybtx.html failed!");
+/*START_TEST(test_part_invalid_gbk_to_utf8) {*/
+    /*FILE *fp = fopen("./ybtx.html", "r");*/
+    /*assert(fp && "open ybtx.html failed!");*/
 
-    char buf[256];
-    str_t *gbk = str_new();
-    int nread;
+    /*char buf[256];*/
+    /*str_t *gbk = str_new();*/
+    /*int nread;*/
 
-    // 先读取整个文件
-    while ((nread = fread(buf, 1, 256, fp)) > 0) {
-        buf[nread] = '\0';
-        str_append(gbk, buf);
-    }
-    fclose(fp);
+    /*// 先读取整个文件*/
+    /*while ((nread = fread(buf, 1, 256, fp)) > 0) {*/
+        /*buf[nread] = '\0';*/
+        /*str_append(gbk, buf);*/
+    /*}*/
+    /*fclose(fp);*/
 
-    // 然后将gbk转换为utf8
-    u8_str_t *u8 = gbk_to_u8_str(gbk);
-    /*printf("%s\n", u8_str_c_u8_str(u8));*/
-    ck_assert(u8_str_size(u8) > 0);
+    /*// 然后将gbk转换为utf8*/
+    /*u8_str_t *u8 = gbk_to_u8_str(gbk);*/
+    /*[>printf("%s\n", u8_str_c_u8_str(u8));<]*/
+    /*ck_assert(u8_str_size(u8) > 0);*/
 
-    u8_str_free(u8);
-    str_free(gbk);
-    ck_assert_no_leak();
-}
-END_TEST
+    /*u8_str_free(u8);*/
+    /*str_free(gbk);*/
+    /*ck_assert_no_leak();*/
+/*}*/
+/*END_TEST*/
 
 START_TEST(test_gbk_to_str) {
     str_t *gbk = str_new_from("\x68\x65\x6c\x6c\x6f\x2c\x20\xd6\xd0\xb9\xfa");
@@ -257,7 +257,7 @@ START_DEFINE_SUITE(str_conv)
     TEST(test_utf8_to_gbk)
     TEST(test_gbk_to_wstr)
     TEST(test_gbk_to_utf8)
-    TEST(test_part_invalid_gbk_to_utf8)
+    /*TEST(test_part_invalid_gbk_to_utf8)*/
     TEST(test_gbk_to_str)
     TEST(test_str_to_gbk)
 END_DEFINE_SUITE()

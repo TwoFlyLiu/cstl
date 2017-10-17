@@ -53,7 +53,7 @@ CSTL_EXPORT char* u8_char_to_u8_str(const u8_char_t *u8_char, char *buf, size_t 
 
     if (buflen > u8_char_byte_size(u8_char)) {
         strncpy(buf, (const char*)u8_char->beg, u8_char_byte_size(u8_char));
-        *(u8_char->beg + u8_char_byte_size(u8_char)) = '\0';
+        *(buf + u8_char_byte_size(u8_char)) = '\0';
     } else {
         *buf = '\0';
     }

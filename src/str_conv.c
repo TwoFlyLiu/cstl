@@ -56,7 +56,8 @@ CSTL_EXPORT u8_str_t *wstr_to_u8_str(const wstr_t *wstr)
     iconv_t  icv = iconv_open(to_code, from_code);
     assert((iconv_t)-1 != icv);
 
-    assert(-1 != iconv(icv, &in, &in_left, &out, &out_left));
+    size_t UNUSED nbytes = iconv(icv, &in, &in_left, &out, &out_left);
+    assert((size_t)-1 != nbytes);
     iconv_close(icv);
 
     *out = '\0'; //添加空结束标志
@@ -114,7 +115,8 @@ CSTL_EXPORT wstr_t *u8_str_to_wstr(const u8_str_t *u8_str)
     iconv_t  icv = iconv_open(to_code, from_code);
     assert((iconv_t)-1 != icv);
 
-    assert(-1 != iconv(icv, &in, &in_left, &out, &out_left));
+    size_t UNUSED nbytes = iconv(icv, &in, &in_left, &out, &out_left);
+    assert((size_t)-1 != nbytes);
     iconv_close(icv);
 
     *out = L'\0'; //添加空结束标志
@@ -153,7 +155,8 @@ CSTL_EXPORT str_t *wstr_to_gbk(const wstr_t *wstr)
     iconv_t  icv = iconv_open(to_code, from_code);
     assert((iconv_t)-1 != icv);
 
-    assert(-1 != iconv(icv, &in, &in_left, &out, &out_left));
+    size_t UNUSED nbytes = iconv(icv, &in, &in_left, &out, &out_left);
+    assert((size_t)-1 != nbytes);
     iconv_close(icv);
 
     *out = '\0'; //添加空结束标志
@@ -183,8 +186,8 @@ CSTL_EXPORT str_t *u8_str_to_gbk(const u8_str_t *u8)
     iconv_t  icv = iconv_open(to_code, from_code);
     assert((iconv_t)-1 != icv);
 
-    assert(-1 != iconv(icv, &in, &in_left, &out, &out_left));
-    iconv_close(icv);
+    size_t UNUSED nbytes = iconv(icv, &in, &in_left, &out, &out_left);
+    assert((size_t)-1 != nbytes);
 
     *out = '\0'; //添加空结束标志
 
@@ -214,7 +217,8 @@ CSTL_EXPORT wstr_t *gbk_to_wstr(const str_t *gbk)
     iconv_t  icv = iconv_open(to_code, from_code);
     assert((iconv_t)-1 != icv);
 
-    assert(-1 != iconv(icv, &in, &in_left, &out, &out_left));
+    size_t UNUSED nbytes = iconv(icv, &in, &in_left, &out, &out_left);
+    assert((size_t)-1 != nbytes);
     iconv_close(icv);
 
     *out = L'\0'; //添加空结束标志
@@ -245,7 +249,8 @@ CSTL_EXPORT u8_str_t *gbk_to_u8_str(const str_t *gbk)
     iconv_t  icv = iconv_open(to_code, from_code);
     assert((iconv_t)-1 != icv);
 
-    assert(-1 != iconv(icv, &in, &in_left, &out, &out_left));
+    size_t UNUSED nbytes = iconv(icv, &in, &in_left, &out, &out_left);
+    assert((size_t)-1 != nbytes);
     iconv_close(icv);
 
     *out = '\0'; //添加空结束标志

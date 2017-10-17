@@ -668,6 +668,7 @@ START_TEST(test_u8_char) {
 
     char buf[4];
     u8_char_to_u8_str(&u8c, buf, 4);
+    ck_assert_int_eq(strlen(buf), strlen("国"));
     ck_assert_str_eq("国", buf);
 
     ck_assert(0 == u8_char_cmp(&u8c, (byte_t*)buf, (byte_t*)(buf + 4)));

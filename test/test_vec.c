@@ -365,7 +365,7 @@ START_TEST(test_assign) {
     ck_assert_int_eq(data, *(int*)vec_get(vec, 0));
 
     data = 200;
-    vec_assign(vec, 0, &data);
+    vec_set(vec, 0, &data);
     ck_assert_int_eq(data, *(int*)vec_get(vec, 0));
 
     vec_free(vec);
@@ -572,7 +572,7 @@ START_TEST(test_vec_type_macro) {
     int_vec_insert(vec, 2, 22);
     ck_assert_int_eq(22, *int_vec_get(vec, 2));
 
-    int_vec_assign(vec, 2, 50);
+    int_vec_set(vec, 2, 50);
     ck_assert_int_eq(50, *int_vec_get(vec, 2));
 
     int_vec_remove(vec, 1000);

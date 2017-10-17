@@ -210,7 +210,7 @@ void *vec_at(VEC *vec, int index)
     return vec_get(vec, index);
 }
 
-inline void vec_assign(VEC *vec, int index, void *value)
+inline void vec_set(VEC *vec, int index, void *value)
 {
     assert(vec != NULL && index >= 0 && index < vec_size(vec) && value != NULL);
     __vec_put(vec, index, value);

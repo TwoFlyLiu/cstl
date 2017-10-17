@@ -39,7 +39,7 @@ void vec_extend_back(VEC *vec, VEC *insert_vec);
 void *vec_get(VEC *vec, int index);
 
 void *vec_at(VEC *vec, int index);
-void vec_assign(VEC *vec, int index, void *value);
+void vec_set(VEC *vec, int index, void *value);
 
 void *vec_front(VEC *vec);
 void *vec_back(VEC *vec);
@@ -102,8 +102,8 @@ void vec_foreach(VEC *vec, vec_foreach_func_t vec_foreach_func, void *user_data)
     static inline void type##_vec_insert(VEC *vec, int index, type value) {\
         vec_insert(vec, index, &value);\
     }\
-    static inline void type##_vec_assign(VEC *vec, int index, type value) {\
-        vec_assign(vec, index, &value);\
+    static inline void type##_vec_set(VEC *vec, int index, type value) {\
+        vec_set(vec, index, &value);\
     }\
     static inline void type##_vec_remove(VEC *vec, type value) {\
         vec_remove(vec, &value, CSTL_NUM_CMP_FUNC(type));\
@@ -151,8 +151,8 @@ void vec_foreach(VEC *vec, vec_foreach_func_t vec_foreach_func, void *user_data)
     static inline void type##_vec_insert(VEC *vec, int index, type value) {\
         vec_insert(vec, index, &value);\
     }\
-    static inline void type##_vec_assign(VEC *vec, int index, type value) {\
-        vec_assign(vec, index, &value);\
+    static inline void type##_vec_set(VEC *vec, int index, type value) {\
+        vec_set(vec, index, &value);\
     }\
     static inline void type##_vec_remove(VEC *vec, type value) {\
         vec_remove(vec, &value, CSTL_NUM_CMP_FUNC(type));\
@@ -200,8 +200,8 @@ void vec_foreach(VEC *vec, vec_foreach_func_t vec_foreach_func, void *user_data)
     static inline void unsigned_##type##_vec_insert(VEC *vec, int index, unsigned type value) {\
         vec_insert(vec, index, &value);\
     }\
-    static inline void unsigned_##type##_vec_assign(VEC *vec, int index, unsigned type value) {\
-        vec_assign(vec, index, &value);\
+    static inline void unsigned_##type##_vec_set(VEC *vec, int index, unsigned type value) {\
+        vec_set(vec, index, &value);\
     }\
     static inline void unsigned_##type##_vec_remove(VEC *vec, unsigned type value) {\
         vec_remove(vec, &value, CSTL_UNSIGNED_CMP_FUNC(type));\
@@ -272,8 +272,8 @@ DEFINE_UNSIGNED_NUM_TYPE_VEC(long)
     static inline void type##_vec_insert(VEC *vec, int index, type *value) {\
         vec_insert(vec, index, value);\
     }\
-    static inline void type##_vec_assign(VEC *vec, int index, type *value) {\
-        vec_assign(vec, index, value);\
+    static inline void type##_vec_set(VEC *vec, int index, type *value) {\
+        vec_set(vec, index, value);\
     }\
     static inline void type##_vec_remove(VEC *vec, type *value) {\
         vec_remove(vec, value, &cmp_func);\

@@ -116,8 +116,14 @@ CSTL_LIB int __cstl_long_long_hash_func(long long *value);
 // 定义空的destroy函数
 #define CSTL_NULL_DESTROY_FUNC (&__cstl_destroy_func)
 
-
+#define CSTL_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define CSTL_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define CSTL_ABS(a) ((a) >= 0 ? (a) : -(a))
+
+#if defined(__GNUC__)
+#   define UNUSED __attribute__((unused))
+#else
+#   define UNUSED
+#endif
 
 #endif //STDDEF_H_H

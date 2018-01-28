@@ -1,5 +1,4 @@
 build/*.o
-dep/*.d
 lib/*.a
 lib/*.dll
 lib/*.so

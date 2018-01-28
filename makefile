@@ -26,7 +26,7 @@ test_sources = $(wildcard test/*.c)
 lib_objects = $(patsubst src/%.c,build/%.o,$(lib_sources))
 test_objects = $(patsubst test/%.c,build/%.o,$(test_sources))
 
-all: $(lib) $(dll) $(test) 
+all: init $(lib) $(dll) $(test) 
 
 
 # $?表示依赖比目标新的依赖文件
@@ -67,6 +67,12 @@ dep/%.d: test/%.c
 -include $(patsubst src/%.c,dep/%.d,$(lib_sources)) $(patsubst test/%.c,dep/%.d,$(test_sources))
 
 .PHONY: all clean test install uninstall init
+
+init:
+	@[ -d build ] || mkdir build
+	@[ -d docs ] || mkdir docs
+	@[ -d dep ] || mkdir dep
+	@[ -d lib ] || mkdir lib
 
 clean:
 	$(RM) build/*.o

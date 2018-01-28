@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "hmap.h"
 #include "leak.h"
@@ -24,7 +25,7 @@ __free(void *ptr)
 
 static inline void
 __destroy_entry(void *entry, int key_size,
-        destroy_func_t key_destroy, destroy_func_t val_destroy)
+        const destroy_func_t key_destroy, const destroy_func_t val_destroy)
 {
     if (key_destroy) {
         (*key_destroy)(KEY(entry));
@@ -35,22 +36,34 @@ __destroy_entry(void *entry, int key_size,
     }
 }
 
+static inline void
+__destroy_value(void *value, const destroy_func_t value_destroy)
+{
+    if (value_destroy) {
+        (*value_destroy)(value);
+    }
+}
+
 // 工厂函数
 HMAP *hmap_new(int key_size, int value_size
         , hash_func_t hash_func
         , cmp_func_t key_cmp_func)
 {
+    assert(hash_func && "hash function can't be null!");
+    assert(key_cmp_func && "key compare function can't be null!");
+
     return hmap_new_with_destroy_func(key_size, value_size, hash_func, key_cmp_func,
             NULL, NULL);
 }
 
 HMAP *hmap_new_with_destroy_func(int key_size, int value_size
-        , hash_func_t hash_func
-        , cmp_func_t key_cmp_func
-        , destroy_func_t key_destroy
-        , destroy_func_t val_destroy)
+        , const hash_func_t hash_func
+        , const cmp_func_t key_cmp_func
+        , const destroy_func_t key_destroy
+        , const destroy_func_t val_destroy)
 {
-    assert(hash_func && key_cmp_func);
+    assert(hash_func && "hash function can't be null!");
+    assert(key_cmp_func && "key compare function can't be null!");
 
     HMAP *hmap = (HMAP *)cstl_malloc(sizeof(HMAP));
     int entry_size = key_size + value_size;
@@ -85,13 +98,13 @@ void hmap_free(HMAP *hmap)
 }
 
 static inline void *
-__entry_new(int key_size, int value_size, void *key, void *value)
+__entry_new(int key_size, int value_size, const void *key, const void *value)
 {
     void *entry = cstl_malloc(key_size + value_size);
 
     // 设置数值
-    memcpy(KEY(entry), key, key_size);
-    memcpy(VALUE(entry, key_size), value, value_size);
+    memmove(KEY(entry), key, key_size);
+    memmove(VALUE(entry, key_size), value, value_size);
 
     return entry;
 }
@@ -105,16 +118,19 @@ __entry_free(void *entry)
 // 插入输出
 // 如果key已经存在了，则覆盖掉原来的值
 // 否则插入新的值
-void hmap_insert(HMAP *hmap, void *key, void *value)
+void hmap_insert(HMAP *hmap, const void *key, const void *value)
 {
-    void *entry;
+    void *entry, *old_value;
 
     assert(hmap && key 
             && ((0 == hmap->value_size) || ((hmap->value_size > 0) && value)));
 
-    entry = hmap_get(hmap, key);
-    if (entry != NULL) {
-        memcpy(VALUE(entry, hmap->key_size), value, hmap->value_size);
+    old_value = hmap_get(hmap, key);
+    if (old_value != NULL) {
+        if (hmap->val_destroy != NULL) {
+            (*hmap->val_destroy)(old_value);
+        }
+        memmove(old_value, value, hmap->value_size);
     } else {
         entry = __entry_new(hmap->key_size, hmap->value_size, key, value);
         vec_push_back(hmap->buckets[hmap->hash_func(key) % BUCKET_SIZE], entry);
@@ -125,7 +141,7 @@ void hmap_insert(HMAP *hmap, void *key, void *value)
 }
 
 // 查找数据
-void *hmap_get(const HMAP *hmap, void *key)
+void *hmap_get(const HMAP *hmap, const void *key)
 {
     assert(hmap && key);
 
@@ -145,28 +161,27 @@ void *hmap_get(const HMAP *hmap, void *key)
     return NULL;
 }
 
-void *hmap_find(const HMAP *hmap, void *key)
+void *hmap_find(const HMAP *hmap, const void *key)
 {
     return hmap_get(hmap, key);
 }
 
-bool hmap_has_key(const HMAP *hmap, void *key)
+bool hmap_has_key(const HMAP *hmap, const void *key)
 {
     return (hmap_get(hmap, key) != NULL);
 }
 
 // 修改数据
-void hmap_set(const HMAP *hmap, void *key, void *new_value)
+void hmap_set(HMAP *hmap, const void *key, const void *new_value)
 {
     void *value;
    
     assert(hmap && key && new_value);
     value = hmap_get(hmap, key);
 
-    assert(hmap && key && new_value);
-
     if (value != NULL) {
-        memcpy(value, new_value, hmap->value_size);
+        __destroy_value(value, hmap->val_destroy);
+        memmove(value, new_value, hmap->value_size);
     }
 }
 
@@ -199,7 +214,7 @@ void hmap_for_each(HMAP *hmap, HMAP_FOR_EACH for_each_func, void *user_data)
 
 // 删除指定的元素
 // 新的元素
-void hmap_erase(HMAP *hmap, void *key)
+void hmap_erase(HMAP *hmap, const void *key)
 {
     int hash;
     VEC *bucket;

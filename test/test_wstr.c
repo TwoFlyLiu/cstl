@@ -478,21 +478,21 @@ END_TEST
 START_TEST(test_resize) {
     wstr_t *str = wstr_new_from(L"hello world");
     int old_capacity = wstr_capacity(str);
+    int old_size = wstr_size(str);
 
     // 元素数目减少
-    wstr_resize(str, 3);
+    wstr_resize(str, 3, L'a');
     ck_assert_wstr_eq(L"hel", wstr_c_wstr(str));
     ck_assert_int_eq(3, wstr_size(str));
     ck_assert_int_eq(old_capacity, wstr_capacity(str));
 
     // 元素数目大于原来的容量
-    wstr_resize(str, old_capacity);
-    ck_assert_wstr_eq(L"hel", wstr_c_wstr(str));
-    ck_assert_int_eq(3, wstr_size(str));
-    ck_assert_int_eq(old_capacity + 1, wstr_capacity(str));
+    wstr_resize(str, old_size, L'a');
+    ck_assert_wstr_eq(L"helaaaaaaaa", wstr_c_wstr(str));
+    ck_assert_int_eq(old_size, wstr_size(str));
 
-    for (int i = 3; i < old_capacity + 1; i++) {
-        ck_assert_int_eq(L'\0', *(wstr_c_wstr(str) + i));
+    for (int i = 3; i < old_size; i++) {
+        ck_assert_int_eq(L'a', *(wstr_c_wstr(str) + i));
     }
 
     wstr_free(str);

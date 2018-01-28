@@ -6,7 +6,7 @@ lib_file = libcstl.a
 
 # linux 后缀名是so
 # windows平台下(msys mingw)都是dll
-ifeq ($(shell uname),Linux)
+ifeq ($(linux),1)
 	dll_file = libcstl.so
 else
 	dll_file = libcstl.dll
@@ -28,6 +28,7 @@ test_objects = $(patsubst test/%.c,build/%.o,$(test_sources))
 
 all: $(lib) $(dll) $(test) 
 
+
 # $?表示依赖比目标新的依赖文件
 $(lib): $(lib_objects)
 	$(AR) $(ARFLAGS) $@ $^
@@ -38,17 +39,19 @@ $(dll): $(lib_objects)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LOADLIBES)
 
 # 生成测试程序(对于msys2 gcc优先链接的居然不是动态库，而是动态库, 和常规不一样)
-$(test): LOADLIBES= -lcstl -lcheck -liconv
-$(test): LDFLAGS = -static -Llib
+# 静态库当做目标一样编译进去就可以强制使用静态库
+$(test): LOADLIBES= -lcheck -liconv
+$(test): LDFLAGS = -Llib 
 $(test): $(test_objects) $(lib)
-	$(CC) $(LDFLAGS) -o $(test) $(test_objects) $(LOADLIBES) $(LDLIBS)
+	$(CC) $(LDFLAGS) -o $(test) $(test_objects) $(lib) $(LOADLIBES) $(LDLIBS) $(shell pkg-config --libs check) 
 
 # 模式规则
 build/%.o: src/%.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
+# 因为使用了check, 所以要check编译选项
 build/%.o: test/%.c
-	$(CC) -c $(CFLAGS) $(extra_include_dirs) $< -o $@
+	$(CC) -c $(CFLAGS) $(shell pkg-config --cflags check) $(extra_include_dirs) $< -o $@
 
 # 上下两条规则，同时存在，不会出现覆盖问题
 dep/%.d: src/%.c
@@ -59,10 +62,11 @@ dep/%.d: test/%.c
 	@set -e; $(CC) -MM $(CFLAGS) $< >/tmp/$$$$;\
 		sed -E 's,(\w+).o[ :]+,build/\1.o dep/\1.d : ,g' </tmp/$$$$ >$@
 
-# 导入编译器自动生成的依赖文件(并且会检测依赖规则，如果过期则重新生成)
-include $(patsubst src/%.c,dep/%.d,$(lib_sources)) $(patsubst test/%.c,dep/%.d,$(test_sources))
 
-.PHONY: all clean test install uninstall
+# 导入编译器自动生成的依赖文件(并且会检测依赖规则，如果过期则重新生成)
+-include $(patsubst src/%.c,dep/%.d,$(lib_sources)) $(patsubst test/%.c,dep/%.d,$(test_sources))
+
+.PHONY: all clean test install uninstall init
 
 clean:
 	$(RM) build/*.o
@@ -83,3 +87,6 @@ uninstall:
 # 启用单进程模式进行测试(设置CK_FORK=no, 默认是多进程的，就是使用fork), 
 test: $(test)
 	./$(test)
+
+debug:
+	grep -n memcpy include/*.h src/*.c

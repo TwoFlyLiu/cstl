@@ -7,6 +7,7 @@
 #include <check_util.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include "vec.h"
 #include "test_common.h"
@@ -217,7 +218,7 @@ typedef struct {
     int x, y;
 } POINT;
 
-static int __point_compare(void *lhs, void *rhs)
+static int __point_compare(const void *lhs, const void *rhs)
 {
     POINT *pt_lhs = (POINT *)lhs;
     POINT *pt_rhs = (POINT *)rhs;
@@ -442,7 +443,7 @@ START_TEST(test_clear) {
     // 删除空的(保证不出错)
     vec_clear(vec);
     ck_assert_int_eq(0, vec_size(vec));
-    ck_assert_int_eq(10, vec_capacity(vec));
+    ck_assert_int_eq(0, vec_capacity(vec));
 
     // 有值删除
     for (int i = 0; i < 10; i++) {
@@ -486,6 +487,35 @@ START_TEST(test_remove) {
 
     vec_free(vec);
     ck_assert_no_leak();
+}
+END_TEST
+
+START_TEST(test_remove_all) {
+    VEC *vec = vec_new(sizeof(int), NULL);
+    int data = 1;
+
+    for (int i = 0; i < 5; i++) {
+        vec_push_back(vec, &data);
+    }
+
+    data = 2;
+    for (int i = 0; i < 5; i++) {
+        vec_push_back(vec, &data);
+    }
+
+    // data=2
+    data = 2;
+    ck_assert(NULL != vec_find(vec, &data, CSTL_NUM_CMP_FUNC(int)));
+    vec_remove_all(vec, &data, CSTL_NUM_CMP_FUNC(int));
+    ck_assert(NULL == vec_find(vec, &data, CSTL_NUM_CMP_FUNC(int)));
+
+    // data=1
+    data = 1;
+    ck_assert(NULL != vec_find(vec, &data, CSTL_NUM_CMP_FUNC(int)));
+    vec_remove_all(vec, &data, CSTL_NUM_CMP_FUNC(int));
+    ck_assert(NULL == vec_find(vec, &data, CSTL_NUM_CMP_FUNC(int)));
+
+    vec_free(vec);
 }
 END_TEST
 
@@ -639,7 +669,7 @@ typedef struct {
 } data_t, DATA;
 
 static int
-__data_cmp(void *lhs, void *rhs)
+__data_cmp(const void *lhs, const void *rhs)
 {
     DATA *v_lhs = (DATA *)lhs;
     DATA *v_rhs = (DATA *)rhs;
@@ -658,7 +688,7 @@ typedef struct {
 } person_t, PERSON;
 
 static int
-__person_name_cmp(void *lhs, void *rhs)
+__person_name_cmp(const void *lhs, const void *rhs)
 {
     PERSON *v_lhs = (PERSON*)lhs;
     PERSON *v_rhs = (PERSON*)rhs;
@@ -667,7 +697,7 @@ __person_name_cmp(void *lhs, void *rhs)
 }
 
 static int
-__person_age_cmp(void *lhs, void *rhs)
+__person_age_cmp(const void *lhs, const void *rhs)
 {
     PERSON *v_lhs = (PERSON*)lhs;
     PERSON *v_rhs = (PERSON*)rhs;
@@ -828,7 +858,7 @@ START_TEST(test_bin_find)
     // 多个值，查找，保证结果正确
     vec_clear(vec);
     ck_assert_int_eq(0, vec_size(vec));
-    ck_assert_int_eq(10, vec_capacity(vec));
+    ck_assert_int_eq(0, vec_capacity(vec));
 
     ck_assert_int_eq(8, (ARRAY_SIZE(datas, int)));
     for (int i = 0; i < ARRAY_SIZE(datas, int); i++) {
@@ -891,6 +921,7 @@ START_DEFINE_SUITE(vec)
     TEST(test_erase)
     TEST(test_clear)
     TEST(test_remove)
+    TEST(test_remove_all)
     TEST(test_sort)
     TEST(test_swap)
     TEST(test_vec_num_compare)

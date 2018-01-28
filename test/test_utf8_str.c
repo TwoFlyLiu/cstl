@@ -12,13 +12,13 @@
 START_TEST(test_new_from) {
     // 正面测试
     u8_str_t *u8 = u8_str_new_from((byte_t*)"hello, \xd6\xd0\xb9\xfa", strlen("hello, \xd6\xd0\xb9\xfa"),
-                "GB18030");
+                CSTL_GBK);
 
     ck_assert_str_eq("hello, \xe4\xb8\xad\xe5\x9b\xbd", u8_str_c_u8_str(u8));
     u8_str_free(u8);
 
     // 负面测试
-    u8 = u8_str_new_from((byte_t*)"", 0, "GB18030");
+    u8 = u8_str_new_from((byte_t*)"", 0, CSTL_GBK);
     ck_assert_str_eq("", u8_str_c_u8_str(u8));
     u8_str_free(u8);
 
@@ -48,7 +48,7 @@ START_TEST(test_new_from) {
     ck_assert_str_eq("hello, , world", u8_str_c_u8_str(u8));
     u8_str_free(u8);
 
-    u8 = u8_str_new_from_u16(L"hello, 中国");
+    u8 = u8_str_new_from_uni(L"hello, 中国");
     ck_assert_str_eq("hello, \xe4\xb8\xad\xe5\x9b\xbd", u8_str_c_u8_str(u8));
     u8_str_free(u8);
 
@@ -96,19 +96,19 @@ START_TEST(test_append) {
     u8_str_t *u8 = u8_str_new_from_ascii("hello, ");
 
     // 中国
-    u8_str_append(u8, (byte_t*)"\xe4\xb8\xad\xe5\x9b\xbd", strlen("\xe4\xb8\xad\xe5\x9b\xbd"), "UTF-8");
+    u8_str_append(u8, (byte_t*)"\xe4\xb8\xad\xe5\x9b\xbd", strlen("\xe4\xb8\xad\xe5\x9b\xbd"), CSTL_UTF8);
     ck_assert_str_eq("hello, \xe4\xb8\xad\xe5\x9b\xbd", u8_str_c_u8_str(u8));
 
     // 飞天虎
-    u8_str_append(u8, (byte_t*)"\xb7\xc9\xcc\xec\xbb\xa2", strlen("\xb7\xc9\xcc\xec\xbb\xa2"), "GB18030");
+    u8_str_append(u8, (byte_t*)"\xb7\xc9\xcc\xec\xbb\xa2", strlen("\xb7\xc9\xcc\xec\xbb\xa2"), CSTL_GBK);
     ck_assert_str_eq("hello, \xe4\xb8\xad\xe5\x9b\xbd\xe9\xa3\x9e\xe5\xa4\xa9\xe8\x99\x8e", u8_str_c_u8_str(u8));
 
     // 大王
-    u8_str_append(u8, (byte_t*)L"大王", wcslen(L"大王") * sizeof(wchar_t), "UTF-16LE");
+    u8_str_append(u8, (byte_t*)L"大王", wcslen(L"大王") * sizeof(wchar_t), CSTL_UNICODE);
     ck_assert_str_eq("hello, \xe4\xb8\xad\xe5\x9b\xbd\xe9\xa3\x9e\xe5\xa4\xa9\xe8\x99\x8e\xe5\xa4\xa7\xe7\x8e\x8b", u8_str_c_u8_str(u8));
 
     // ff
-    u8_str_append(u8, (byte_t*)"ff", strlen("ff"), "ASCII");
+    u8_str_append(u8, (byte_t*)"ff", strlen("ff"), CSTL_ASCII);
     ck_assert_str_eq("hello, \xe4\xb8\xad\xe5\x9b\xbd\xe9\xa3\x9e\xe5\xa4\xa9\xe8\x99\x8e\xe5\xa4\xa7\xe7\x8e\x8b\x66\x66", u8_str_c_u8_str(u8));
 
     u8_str_free(u8);
@@ -127,7 +127,7 @@ START_TEST(test_append) {
     ck_assert_str_eq("hello, \xe4\xb8\xad\xe5\x9b\xbd\xe9\xa3\x9e\xe5\xa4\xa9\xe8\x99\x8e", u8_str_c_u8_str(u8));
 
     // 大王
-    u8_str_append_u16(u8, L"大王");
+    u8_str_append_uni(u8, L"大王");
     ck_assert_str_eq("hello, \xe4\xb8\xad\xe5\x9b\xbd\xe9\xa3\x9e\xe5\xa4\xa9\xe8\x99\x8e\xe5\xa4\xa7\xe7\x8e\x8b", u8_str_c_u8_str(u8));
 
     // ff
@@ -240,19 +240,19 @@ START_TEST(test_insert) {
     u8 = u8_str_new_from_u8("hello, 飞飞侠");
 
     // 在头部插入, 中国,
-    u8_str_insert_u16(u8, 0, L"中国,");
+    u8_str_insert_uni(u8, 0, L"中国,");
     ck_assert_str_eq("中国,hello, 飞飞侠", u8_str_c_u8_str(u8));
 
     // 在中间位置插入, 一
-    u8_str_insert_u16(u8, 1, L"一");
+    u8_str_insert_uni(u8, 1, L"一");
     ck_assert_str_eq("中一国,hello, 飞飞侠", u8_str_c_u8_str(u8));
 
     // 二
-    u8_str_insert_u16(u8, 5, L"二");
+    u8_str_insert_uni(u8, 5, L"二");
     ck_assert_str_eq("中一国,h二ello, 飞飞侠", u8_str_c_u8_str(u8));
 
     // 在末尾插入, 哈哈
-    u8_str_insert_u16(u8, u8_str_size(u8), L"哈哈");
+    u8_str_insert_uni(u8, u8_str_size(u8), L"哈哈");
     ck_assert_str_eq("中一国,h二ello, 飞飞侠哈哈", u8_str_c_u8_str(u8));
 
     // 在超出末尾位置插入
@@ -268,11 +268,11 @@ START_TEST(test_assign) {
     u8_str_t *u8 = u8_str_new_from_ascii("");
     ck_assert_int_eq(0, u8_str_size(u8));
 
-    //测试assign_u16
+    //测试assign_uni
     wchar_t* datas[] = {L"hello, 中国", L"kkjj", L"", L"SKJD"};
     char* u8datas[] = {"hello, \xe4\xb8\xad\xe5\x9b\xbd", "kkjj", "", "SKJD"};
     for (size_t i = 0; i < ARRAY_SIZE(datas, wchar_t*); i++) {
-        u8_str_assign_u16(u8, datas[i]);
+        u8_str_assign_uni(u8, datas[i]);
         ck_assert_str_eq(u8datas[i], u8_str_c_u8_str(u8));
     }
 
@@ -303,7 +303,7 @@ START_TEST(test_assign) {
 END_TEST
 
 START_TEST(test_at) {
-    u8_str_t *u8 = u8_str_new_from_u16(L"");
+    u8_str_t *u8 = u8_str_new_from_uni(L"");
     u8_char_t u8c;
 
     // 在指定范围内
@@ -357,7 +357,7 @@ START_TEST(test_sub) {
 
     u8_str_free(u8);
 
-    u8 = u8_str_new_from_u16(L"hello, 中国你好");
+    u8 = u8_str_new_from_uni(L"hello, 中国你好");
 
     sub = u8_str_sub(u8, 7, 1);
     ck_assert_str_eq("\xe4\xb8\xad", u8_str_c_u8_str(sub));
@@ -405,7 +405,7 @@ START_TEST(test_trim) {
 END_TEST
 
 START_TEST(test_split) {
-    u8_str_t *u8 = u8_str_new_from_u16(L"我是::中国:人:我:");
+    u8_str_t *u8 = u8_str_new_from_uni(L"我是::中国:人:我:");
     VEC *vec = u8_str_split_ascii(u8, "[:]");
 
     ck_assert_int_eq(6, vec_size(vec));
@@ -428,7 +428,7 @@ START_TEST(test_split) {
     ck_assert_str_eq("::\xe4\xb8\xad\xe5\x9b\xbd:\xe4\xba\xba:\xe6\x88\x91:", u8_str_c_u8_str(u8_str_vec_get(vec, 1))); //::中国:人:我:
     vec_free(vec);
 
-    vec = u8_str_split_u16(u8, L"是");
+    vec = u8_str_split_uni(u8, L"是");
     ck_assert_int_eq(2, vec_size(vec));
     ck_assert_str_eq("\xe6\x88\x91", u8_str_c_u8_str(u8_str_vec_get(vec, 0))); //我
     ck_assert_str_eq("::\xe4\xb8\xad\xe5\x9b\xbd:\xe4\xba\xba:\xe6\x88\x91:", u8_str_c_u8_str(u8_str_vec_get(vec, 1))); //::中国:人:我:
@@ -446,7 +446,7 @@ START_TEST(test_split) {
 END_TEST
 
 START_TEST(test_split_lines) {
-    u8_str_t *u8 = u8_str_new_from_u16(L"我是\n中国\n人\n我");
+    u8_str_t *u8 = u8_str_new_from_uni(L"我是\n中国\n人\n我");
     VEC *vec = u8_str_split_lines(u8);
 
     ck_assert_int_eq(4, vec_size(vec));
@@ -462,12 +462,12 @@ START_TEST(test_split_lines) {
 END_TEST
 
 START_TEST(test_cmp) {
-    u8_str_t *u8 = u8_str_new_from_u16(L"我是中国人");
+    u8_str_t *u8 = u8_str_new_from_uni(L"我是中国人");
 
     ck_assert(0 == u8_str_cmp_gbk(u8, "\xce\xd2\xca\xc7\xd6\xd0\xb9\xfa\xc8\xcb"));
     ck_assert(0 == u8_str_cmp_u8(u8, "\xe6\x88\x91\xe6\x98\xaf\xe4\xb8\xad\xe5\x9b\xbd\xe4\xba\xba"));
-    ck_assert(0 == u8_str_cmp_u16(u8, L"我是中国人"));
-    ck_assert(0 != u8_str_cmp_u16(u8, L"hksjs我是中国人"));
+    ck_assert(0 == u8_str_cmp_uni(u8, L"我是中国人"));
+    ck_assert(0 != u8_str_cmp_uni(u8, L"hksjs我是中国人"));
 
     u8_str_assign_ascii(u8, "abc");
     ck_assert(0 == u8_str_cmp_ascii(u8, "abc"));
@@ -481,13 +481,13 @@ START_TEST(test_cmp) {
 END_TEST
 
 START_TEST(test_contains) {
-    u8_str_t *u8 = u8_str_new_from_u16(L"hh我是中国人jj");
+    u8_str_t *u8 = u8_str_new_from_uni(L"hh我是中国人jj");
 
     ck_assert(u8_str_contains_ascii(u8, "jj"));
     ck_assert(u8_str_contains_u8(u8, "\xe4\xb8\xad\xe5\x9b\xbd"));
     ck_assert(u8_str_contains_gbk(u8, "\xd6\xd0\xb9\xfa"));
-    ck_assert(u8_str_contains_u16(u8, L"中国"));
-    ck_assert(!u8_str_contains_u16(u8, L"哈哈"));
+    ck_assert(u8_str_contains_uni(u8, L"中国"));
+    ck_assert(!u8_str_contains_uni(u8, L"哈哈"));
 
     u8_str_free(u8);
     ck_assert_no_leak();
@@ -495,12 +495,12 @@ START_TEST(test_contains) {
 END_TEST
 
 START_TEST(test_equals) {
-    u8_str_t *u8 = u8_str_new_from_u16(L"k我是中国人");
+    u8_str_t *u8 = u8_str_new_from_uni(L"k我是中国人");
 
     ck_assert(u8_str_equals_gbk(u8, "k\xce\xd2\xca\xc7\xd6\xd0\xb9\xfa\xc8\xcb"));
     ck_assert(u8_str_equals_u8(u8, "k\xe6\x88\x91\xe6\x98\xaf\xe4\xb8\xad\xe5\x9b\xbd\xe4\xba\xba"));
-    ck_assert(u8_str_equals_u16(u8, L"k我是中国人"));
-    ck_assert(!u8_str_equals_u16(u8, L"K我是中国人"));
+    ck_assert(u8_str_equals_uni(u8, L"k我是中国人"));
+    ck_assert(!u8_str_equals_uni(u8, L"K我是中国人"));
 
     u8_str_assign_ascii(u8, "abc");
     ck_assert(u8_str_equals_ascii(u8, "abc"));
@@ -515,12 +515,12 @@ START_TEST(test_equals) {
 END_TEST
 
 START_TEST(test_equals_ignore_case) {
-    u8_str_t *u8 = u8_str_new_from_u16(L"k我是中国人");
+    u8_str_t *u8 = u8_str_new_from_uni(L"k我是中国人");
 
     ck_assert(u8_str_equals_ignore_case_gbk(u8, "k\xce\xd2\xca\xc7\xd6\xd0\xb9\xfa\xc8\xcb"));
     ck_assert(u8_str_equals_ignore_case_u8(u8, "k\xe6\x88\x91\xe6\x98\xaf\xe4\xb8\xad\xe5\x9b\xbd\xe4\xba\xba"));
-    ck_assert(u8_str_equals_ignore_case_u16(u8, L"k我是中国人"));
-    ck_assert(u8_str_equals_ignore_case_u16(u8, L"K我是中国人"));
+    ck_assert(u8_str_equals_ignore_case_uni(u8, L"k我是中国人"));
+    ck_assert(u8_str_equals_ignore_case_uni(u8, L"K我是中国人"));
 
     u8_str_assign_ascii(u8, "abc");
     ck_assert(u8_str_equals_ignore_case_ascii(u8, "abc"));
@@ -551,7 +551,7 @@ START_TEST(test_matches) {
 
     ck_assert(u8_str_matches_gbk(u8, "\xd6\xd0"));
     ck_assert(u8_str_matches_u8(u8, "\xe4\xb8\xad"));
-    ck_assert(u8_str_matches_u16(u8, L"[0-9]+中"));
+    ck_assert(u8_str_matches_uni(u8, L"[0-9]+中"));
 
     u8_str_assign_ascii(u8, "123");
     ck_assert(u8_str_matches_ascii(u8, "[[:digit:]]+"));
@@ -562,10 +562,10 @@ START_TEST(test_matches) {
 END_TEST
 
 START_TEST(test_starts_with) {
-    u8_str_t *u8 = u8_str_new_from_u16(L"中国hello");
+    u8_str_t *u8 = u8_str_new_from_uni(L"中国hello");
 
     ck_assert(u8_str_starts_with_u8(u8, "\xe4\xb8\xad"));
-    ck_assert(u8_str_starts_with_u16(u8, L"中"));
+    ck_assert(u8_str_starts_with_uni(u8, L"中"));
     ck_assert(u8_str_starts_with_gbk(u8, "\xd6\xd0"));
 
     u8_str_assign_ascii(u8, "hello world");
@@ -577,9 +577,9 @@ START_TEST(test_starts_with) {
 END_TEST
 
 START_TEST(test_index_of) {
-    u8_str_t *u8 = u8_str_new_from_u16(L"中国你, 中国你真好好");
+    u8_str_t *u8 = u8_str_new_from_uni(L"中国你, 中国你真好好");
 
-    ck_assert_int_eq(6, u8_str_index_of_u16(u8, 2, L"国你"));
+    ck_assert_int_eq(6, u8_str_index_of_uni(u8, 2, L"国你"));
     ck_assert_int_eq(6, u8_str_index_of_gbk(u8, 2, "\xb9\xfa\xc4\xe3"));
     ck_assert_int_eq(6, u8_str_index_of_u8(u8, 2, "\xe5\x9b\xbd\xe4\xbd\xa0"));
 
@@ -592,9 +592,11 @@ START_TEST(test_index_of) {
 END_TEST
 
 START_TEST(test_rindex_of) {
-    u8_str_t *u8 = u8_str_new_from_u16(L"中国你, 中国你真好好");
+    u8_str_t *u8 = u8_str_new_from_uni(L"中国你, 中国你真好好");
 
-    ck_assert_int_eq(6, u8_str_rindex_of_u16(u8, 100, L"国你"));
+    ck_assert_int_eq(6, u8_str_rindex_of_uni(u8, 100, L"国你"));
+    ck_assert_int_eq(6, u8_str_rindex_of_uni(u8, 7, L"国你"));
+    ck_assert_int_eq(6, u8_str_rindex_of_uni(u8, -1, L"国你"));
     ck_assert_int_eq(6, u8_str_rindex_of_gbk(u8, 100, "\xb9\xfa\xc4\xe3"));
     ck_assert_int_eq(6, u8_str_rindex_of_u8(u8, 100, "\xe5\x9b\xbd\xe4\xbd\xa0"));
 
@@ -607,16 +609,16 @@ START_TEST(test_rindex_of) {
 END_TEST
 
 START_TEST(test_replace_first) {
-    u8_str_t *u8 = u8_str_new_from_u16(L"kk中国你好，中国你真真好");
+    u8_str_t *u8 = u8_str_new_from_uni(L"kk中国你好，中国你真真好");
     
-    u8_str_replace_first_u16(u8, 1, L"中国", L"北京");
+    u8_str_replace_first_uni(u8, 1, L"中国", L"北京");
     ck_assert_str_eq("kk\xe5\x8c\x97\xe4\xba\xac\xe4\xbd\xa0\xe5\xa5\xbd\xef\xbc\x8c\xe4\xb8\xad\xe5\x9b\xbd\xe4\xbd\xa0\xe7\x9c\x9f\xe7\x9c\x9f\xe5\xa5\xbd", u8_str_c_u8_str(u8));
 
-    u8_str_assign_u16(u8, L"kk中国你好，中国你真真好");
+    u8_str_assign_uni(u8, L"kk中国你好，中国你真真好");
     u8_str_replace_first_u8(u8, 1, "\xe4\xb8\xad\xe5\x9b\xbd", "\xe5\x8c\x97\xe4\xba\xac");
     ck_assert_str_eq("kk\xe5\x8c\x97\xe4\xba\xac\xe4\xbd\xa0\xe5\xa5\xbd\xef\xbc\x8c\xe4\xb8\xad\xe5\x9b\xbd\xe4\xbd\xa0\xe7\x9c\x9f\xe7\x9c\x9f\xe5\xa5\xbd", u8_str_c_u8_str(u8));
 
-    u8_str_assign_u16(u8, L"kk中国你好，中国你真真好");
+    u8_str_assign_uni(u8, L"kk中国你好，中国你真真好");
     u8_str_replace_first_gbk(u8, 1, "\xd6\xd0\xb9\xfa", "\xb1\xb1\xbe\xa9");
     ck_assert_str_eq("kk\xe5\x8c\x97\xe4\xba\xac\xe4\xbd\xa0\xe5\xa5\xbd\xef\xbc\x8c\xe4\xb8\xad\xe5\x9b\xbd\xe4\xbd\xa0\xe7\x9c\x9f\xe7\x9c\x9f\xe5\xa5\xbd", u8_str_c_u8_str(u8));
 
@@ -627,16 +629,16 @@ START_TEST(test_replace_first) {
 END_TEST
 
 START_TEST(test_replace) {
-    u8_str_t *u8 = u8_str_new_from_u16(L"kk中国你好，中国你真真好");
+    u8_str_t *u8 = u8_str_new_from_uni(L"kk中国你好，中国你真真好");
     
-    u8_str_replace_u16(u8, L"中国", L"北京");
+    u8_str_replace_uni(u8, L"中国", L"北京");
     ck_assert_str_eq("kk\xe5\x8c\x97\xe4\xba\xac\xe4\xbd\xa0\xe5\xa5\xbd\xef\xbc\x8c\xe5\x8c\x97\xe4\xba\xac\xe4\xbd\xa0\xe7\x9c\x9f\xe7\x9c\x9f\xe5\xa5\xbd", u8_str_c_u8_str(u8));
 
-    u8_str_assign_u16(u8, L"kk中国你好，中国你真真好");
+    u8_str_assign_uni(u8, L"kk中国你好，中国你真真好");
     u8_str_replace_u8(u8, "\xe4\xb8\xad\xe5\x9b\xbd", "\xe5\x8c\x97\xe4\xba\xac");
     ck_assert_str_eq("kk\xe5\x8c\x97\xe4\xba\xac\xe4\xbd\xa0\xe5\xa5\xbd\xef\xbc\x8c\xe5\x8c\x97\xe4\xba\xac\xe4\xbd\xa0\xe7\x9c\x9f\xe7\x9c\x9f\xe5\xa5\xbd", u8_str_c_u8_str(u8));
 
-    u8_str_assign_u16(u8, L"kk中国你好，中国你真真好");
+    u8_str_assign_uni(u8, L"kk中国你好，中国你真真好");
     u8_str_replace_gbk(u8, "\xd6\xd0\xb9\xfa", "\xb1\xb1\xbe\xa9");
     ck_assert_str_eq("kk\xe5\x8c\x97\xe4\xba\xac\xe4\xbd\xa0\xe5\xa5\xbd\xef\xbc\x8c\xe5\x8c\x97\xe4\xba\xac\xe4\xbd\xa0\xe7\x9c\x9f\xe7\x9c\x9f\xe5\xa5\xbd", u8_str_c_u8_str(u8));
 
@@ -660,7 +662,7 @@ START_TEST(test_lower_upper_case) {
 END_TEST
 
 START_TEST(test_u8_char) {
-    u8_str_t *u8 = u8_str_new_from_u16(L"中国你好");
+    u8_str_t *u8 = u8_str_new_from_uni(L"中国你好");
     u8_char_t u8c;
 
     u8_str_at(u8, 1, &u8c);

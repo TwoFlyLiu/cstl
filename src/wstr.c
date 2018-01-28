@@ -7,7 +7,6 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <ctype.h>
-#include <cstl/vec.h>
 #include <regex.h>
 #include <errno.h>
 #include <string.h>
@@ -32,6 +31,11 @@ typedef struct CSTLWString wstr_t;
 // 居然有不清晰声明（在msys2中）
 static wstr_t *_wstr_realloc(wstr_t *wstr, int new_capacity);
 int wcscasecmp(const wchar_t *s1, const wchar_t *s2);
+
+static inline size_t __calc_new_capacity(wstr_t *wstr, size_t to_append_wchar_count)
+{
+    return wstr_size(wstr) + CSTL_MAX(wstr_size(wstr), to_append_wchar_count) + 1;
+}
 
 CSTL_EXPORT wstr_t * wstr_new()
 {
@@ -111,8 +115,8 @@ CSTL_EXPORT wstr_t* wstr_append(wstr_t *wstr, const wchar_t *raw)
     if (!raw) return wstr;
 
     len = wcslen(raw);
-    if (wstr->capacity - wstr->len <= len) {
-        wstr = _wstr_realloc(wstr, (wstr->capacity + len) * 2 + 1);
+    if (wstr_size(wstr) + len >= wstr_capacity(wstr)) {
+        _wstr_realloc(wstr, __calc_new_capacity(wstr, len));
     }
 
     wcscpy(wstr->beg + wstr->len, raw);
@@ -126,6 +130,7 @@ CSTL_LIB wstr_t* wstr_insert(wstr_t *wstr, int pos, const wchar_t *new_wstr)
 {
     int length;
     
+    assert(wstr);
     if (new_wstr == NULL || L'\0' == *new_wstr) {
         return wstr;
     }
@@ -141,7 +146,7 @@ CSTL_LIB wstr_t* wstr_insert(wstr_t *wstr, int pos, const wchar_t *new_wstr)
     }
 
     if (wstr_size(wstr) + length >= wstr_capacity(wstr)) {
-        _wstr_realloc(wstr, (wstr_capacity(wstr) + length) * 2 + 1);
+        _wstr_realloc(wstr, __calc_new_capacity(wstr, length));
     }
 
     // 将插入点位置上原来元素，统一向后偏移 
@@ -149,7 +154,7 @@ CSTL_LIB wstr_t* wstr_insert(wstr_t *wstr, int pos, const wchar_t *new_wstr)
         *(wstr->beg + i + length) = *(wstr->beg + i);
     }
 
-    memcpy(wstr->beg + pos, new_wstr, length * sizeof(wchar_t));
+    memmove(wstr->beg + pos, new_wstr, length * sizeof(wchar_t));
     wstr->len += length;
     *(wstr->beg + wstr->len) = L'\0';
 
@@ -157,7 +162,7 @@ CSTL_LIB wstr_t* wstr_insert(wstr_t *wstr, int pos, const wchar_t *new_wstr)
 }
 
 // 获取单个字节（有可能数据不完整）
-CSTL_EXPORT wchar_t wstr_at(wstr_t *wstr, int index)
+CSTL_EXPORT wchar_t wstr_at(const wstr_t *wstr, int index)
 {
     assert(wstr);
 
@@ -181,7 +186,7 @@ CSTL_LIB wstr_t* wstr_trim_left(wstr_t *wstr)
     // 将右侧的所有字符统一向左侧进行拷贝
     if (pos != wstr->beg && *pos) { //表明左侧有空白字符，右侧有非空白字符
         wstr->len -= pos - wstr->beg;
-        memcpy(wstr->beg, pos, wstr->len * sizeof(wchar_t));
+        memmove(wstr->beg, pos, wstr->len * sizeof(wchar_t));
         *(wstr->beg + wstr->len) = L'\0';
     } else if (*pos == L'\0') { //表示所有内容为空
         wstr->len = 0;
@@ -218,14 +223,14 @@ CSTL_LIB wstr_t* wstr_trim(wstr_t *wstr)
 }
 
 CSTL_EXPORT wchar_t*  wstr_c_wstr(wstr_t *wstr);
-CSTL_EXPORT wstr_t* wstr_sub_wstr(wstr_t *wstr, int offset, int length);
+CSTL_EXPORT wstr_t* wstr_sub_wstr(const wstr_t *wstr, int offset, int length);
 
 
 // 分割字符集
-CSTL_LIB VEC*   wstr_split(wstr_t *wstr, const wchar_t *regex)
+CSTL_LIB VEC*   wstr_split(const wstr_t *wstr, const wchar_t *regex)
 {
     assert(wstr && regex);
-    VEC *vec = vec_new(sizeof(wstr_t*), (destroy_func_t)wstr_ptr_dewstroy);
+    VEC *vec = vec_new(sizeof(wstr_t*), (destroy_func_t)wstr_ptr_destroy);
     wstr_t *sub_wstr;
 
     regex_t trim_regex;
@@ -251,7 +256,7 @@ CSTL_LIB VEC*   wstr_split(wstr_t *wstr, const wchar_t *regex)
     char tmp_str[this_str_len];
     wchar_t tmp_wstr[wstr_size(wstr)];
 
-    end = wcstombs(this_str, wstr_c_wstr(wstr), this_str_len);
+    end = wcstombs(this_str, wstr_c_wstr((wstr_t*)wstr), this_str_len);
     assert(end != -1);
     *(this_str + end) = '\0';
 
@@ -278,7 +283,7 @@ CSTL_LIB VEC*   wstr_split(wstr_t *wstr, const wchar_t *regex)
 }
 
 // 比较字符集
-CSTL_LIB int    wstr_cmp(wstr_t *wstr, const wchar_t *rhv)
+CSTL_LIB int    wstr_cmp(const wstr_t *wstr, const wchar_t *rhv)
 {
     assert(wstr && rhv);
     return wcscmp(wstr->beg, rhv);
@@ -309,7 +314,7 @@ CSTL_LIB bool   wstr_empty(const wstr_t *wstr)
 }
 
 // 支持正则表达式匹配
-CSTL_LIB bool   wstr_matches(wstr_t *wstr, const wchar_t *regex)
+CSTL_LIB bool   wstr_matches(const wstr_t *wstr, const wchar_t *regex)
 {
     assert(wstr && regex);
     bool matches = false;
@@ -334,7 +339,7 @@ CSTL_LIB bool   wstr_matches(wstr_t *wstr, const wchar_t *regex)
     // 将要进行匹配的字符串转化为窄字符串
     // 利用c99的这个动态数组特性，就不用使用malloc了
     char this_str[3 * wstr_size(wstr) + 1];
-    end = wcstombs(this_str, wstr_c_wstr(wstr), 3 * wstr_size(wstr) + 1);
+    end = wcstombs(this_str, wstr_c_wstr((wstr_t*)wstr), 3 * wstr_size(wstr) + 1);
 
     if (-1 == end) {
         return false;
@@ -366,7 +371,7 @@ CSTL_EXPORT wchar_t*  wstr_c_wstr(wstr_t *wstr)
 }
 
 // 计算hash值
-CSTL_EXPORT unsigned int    wstr_hash_code(wstr_t *wstr)
+CSTL_EXPORT unsigned int    wstr_hash_code(const wstr_t *wstr)
 {
     unsigned int hash = 0;
 
@@ -378,7 +383,7 @@ CSTL_EXPORT unsigned int    wstr_hash_code(wstr_t *wstr)
     return hash;
 }
 
-CSTL_EXPORT unsigned int    wstr_ptr_hash_code(wstr_t **wstr)
+CSTL_EXPORT unsigned int    wstr_ptr_hash_code(const wstr_t **wstr)
 {
     assert(wstr);
     if (NULL == *wstr) {
@@ -418,6 +423,7 @@ CSTL_EXPORT int    wstr_index_of_wchar(const wstr_t *wstr, int from_index, wchar
 {
     assert(wstr);
 
+    from_index = from_index < 0 ? 0 : from_index;
     for (int i = from_index; i < wstr->len; i++) {
         if (*(wstr->beg + i) == val) {
             return i;
@@ -522,14 +528,14 @@ CSTL_EXPORT wstr_t*  wstr_replace_first(wstr_t *wstr, int offset, const wchar_t 
 
         if (diff > 0) { //向前偏移diff
             wchar_t *old_wstr_end = wstr->beg + index + old_len;
-            memcpy(old_wstr_end - diff, old_wstr_end, (wstr->len - diff) * sizeof(wchar_t));
+            memmove(old_wstr_end - diff, old_wstr_end, (wstr->len - diff) * sizeof(wchar_t));
             wstr->len -= diff;
             *(wstr->beg + wstr->len) = L'\0';
         } else if (diff < 0) { // 向后偏移
             diff = -diff;
 
             if (wstr->len + diff >= wstr->capacity) {
-                _wstr_realloc(wstr, (wstr->len + diff) * 2 + 1);
+                _wstr_realloc(wstr, __calc_new_capacity(wstr, diff));
             }
 
             int end = index + old_len;
@@ -540,7 +546,7 @@ CSTL_EXPORT wstr_t*  wstr_replace_first(wstr_t *wstr, int offset, const wchar_t 
             wstr->len += diff;
             *(wstr->beg + wstr->len) = L'\0';
         } 
-        memcpy(wstr->beg + index, new_wstr, new_len * sizeof(wchar_t));
+        memmove(wstr->beg + index, new_wstr, new_len * sizeof(wchar_t));
     }
 
     return wstr;
@@ -580,16 +586,8 @@ CSTL_LIB bool   wstr_contains(const wstr_t *wstr, const wchar_t *sub)
 
 static wstr_t *_wstr_realloc(wstr_t *wstr, int new_capacity)
 {
-    wchar_t *new_buf = (wchar_t*)cstl_malloc(new_capacity * sizeof(wchar_t));
-    int resize = new_capacity <= wstr->len ? new_capacity - 1 : wstr->len; //去最小的长度进行拷贝
-    wcsncpy(new_buf, wstr->beg, resize);
-    *(new_buf + resize) = L'\0';
-
-    cstl_free(wstr->beg); //销毁原来的
-    wstr->beg = new_buf;
-    wstr->len = resize;
+    wstr->beg = (wchar_t*)cstl_realloc(wstr->beg, new_capacity * sizeof(wchar_t));
     wstr->capacity = new_capacity;
-
     return wstr;
 }
 
@@ -599,7 +597,7 @@ CSTL_LIB wstr_t* wstr_assign(wstr_t *wstr, const wchar_t *rhv)
     size_t rhv_len = wcslen(rhv);
 
     if (wstr_capacity(wstr) <= rhv_len) {
-        _wstr_realloc(wstr, (wstr->capacity + rhv_len) * 2 + 1);
+        _wstr_realloc(wstr, __calc_new_capacity(wstr, rhv_len - wstr_size(wstr)));
     }
 
     *wstr->beg = L'\0';
@@ -608,7 +606,7 @@ CSTL_LIB wstr_t* wstr_assign(wstr_t *wstr, const wchar_t *rhv)
     return wstr;
 }
 
-CSTL_EXPORT wstr_t* wstr_sub_wstr(wstr_t *wstr, int offset, int length)
+CSTL_EXPORT wstr_t* wstr_sub_wstr(const wstr_t *wstr, int offset, int length)
 {
     assert(wstr);
 
@@ -620,7 +618,7 @@ CSTL_EXPORT wstr_t* wstr_sub_wstr(wstr_t *wstr, int offset, int length)
 
 // 如果buflen 不够的话，那么就通过errno来返回一个值，表明缓冲区长度不足
 // 末尾即使buf长度不足，也会放入L'\0', 只是有效值少一个
-CSTL_EXPORT int wstr_sub_wstr_buf(wstr_t *wstr, int offset, int length,
+CSTL_EXPORT int wstr_sub_wstr_buf(const wstr_t *wstr, int offset, int length,
         wchar_t *buf, int buflen, int *err)
 {
     assert(wstr);
@@ -632,7 +630,7 @@ CSTL_EXPORT int wstr_sub_wstr_buf(wstr_t *wstr, int offset, int length,
     if (NULL == buf) {
         return length + 1;
     }
-    assert(wstr && buf && buflen > 0);
+    assert(buf && buflen > 0);
 
     // 即使两者容量相同，因为会在末尾增加L'\0', buf有效长度是buflen - 1
     if (buflen <= length) {
@@ -646,19 +644,19 @@ CSTL_EXPORT int wstr_sub_wstr_buf(wstr_t *wstr, int offset, int length,
     return length;
 }
 
-CSTL_EXPORT void wstr_ptr_dewstroy(wstr_t **wstr)
+CSTL_EXPORT void wstr_ptr_destroy(wstr_t **wstr)
 {
     assert(*wstr);
     wstr_free(*wstr);
 }
 
 // 切割行
-CSTL_EXPORT VEC*   wstr_split_lines(wstr_t *wstr)
+CSTL_EXPORT VEC*   wstr_split_lines(const wstr_t *wstr)
 {
     return wstr_split(wstr, L"\n");
 }
 
-CSTL_EXPORT wstr_t* wstr_resize(wstr_t *wstr, size_t new_size)
+CSTL_EXPORT wstr_t* wstr_resize(wstr_t *wstr, size_t new_size, wchar_t value)
 {
     assert(wstr);
 
@@ -666,12 +664,18 @@ CSTL_EXPORT wstr_t* wstr_resize(wstr_t *wstr, size_t new_size)
         _wstr_realloc(wstr, new_size + 1);
     }
 
-    // 3, 4, 1
     if (new_size > (size_t)wstr->len) {
-        memset(wstr->beg + wstr->len, 0, sizeof(wchar_t) * (new_size - wstr->len));
+        for (size_t i = wstr->len; i < new_size; i++) {
+            *(wstr->beg + i) = value;
+        }
+
+        if (value == L'\0') {
+            *(wstr->beg + new_size) = L'\0'; 
+            return wstr;
+        }
     }
 
     *(wstr->beg + new_size) = L'\0'; //容量变化，但是字符串的长度病没有发生变化
-    wstr->len = ((size_t)wstr->len < new_size) ? wstr->len : new_size;
+    wstr->len = new_size;
     return wstr;
 }

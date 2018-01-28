@@ -10,11 +10,11 @@
 #include "list.h"
 #include <leak.h>
 
-static list_node_t *_list_node_new(void *data, int data_size)
+static list_node_t *_list_node_new(const void *data, int data_size)
 {
     list_node_t *node = (list_node_t*)cstl_malloc(sizeof(list_node_t));
     node->data = cstl_malloc(data_size);
-    memcpy(node->data, data, data_size);
+    memmove(node->data, data, data_size);
 
     node->next = NULL;
     node->prev = NULL;
@@ -65,26 +65,26 @@ CSTL_LIB void list_free(LIST *list)
 }
 
 // 访问修改容量信息
-CSTL_LIB size_t list_capacity(UNUSED LIST *list)
+CSTL_LIB size_t list_capacity(const UNUSED LIST *list)
 {
     assert(list);
     return (size_t)-1;
 }
 
-CSTL_LIB bool list_empty(LIST *list)
+CSTL_LIB bool list_empty(const LIST *list)
 {
     assert(list);
     return (NULL == list->head);
 }
 
-CSTL_LIB inline size_t list_size(LIST *list)
+CSTL_LIB inline size_t list_size(const LIST *list)
 {
     assert(list);
     return list->len; //使用len来记录列表长度，可以加速size函数速度
 }
 
 // 增加
-CSTL_LIB void list_push_front(LIST *list, void *elem)
+CSTL_LIB void list_push_front(LIST *list, const void *elem)
 {
     assert(list && elem);
     list_node_t *node = _list_node_new(elem, list->unit_size);
@@ -99,7 +99,7 @@ CSTL_LIB void list_push_front(LIST *list, void *elem)
     list->len ++;
 }
 
-CSTL_LIB void list_push_back(LIST *list, void *elem)
+CSTL_LIB void list_push_back(LIST *list, const void *elem)
 {
     assert(list && elem);
     list_node_t *node = _list_node_new(elem, list->unit_size);
@@ -114,7 +114,7 @@ CSTL_LIB void list_push_back(LIST *list, void *elem)
     list->len ++;
 }
 
-CSTL_LIB void list_insert(LIST *list, int index, void *elem)
+CSTL_LIB void list_insert(LIST *list, int index, const void *elem)
 {
     assert(list && elem);
 
@@ -147,27 +147,27 @@ CSTL_LIB void list_insert(LIST *list, int index, void *elem)
     list->len ++;
 }
 
-CSTL_LIB void list_extend(LIST *list, int index, LIST *insert_list)
+CSTL_LIB void list_extend(LIST *list, int index, const LIST *insert_list)
 {
     assert(list && insert_list);
 
     index = CSTL_MAX(0, index);
     index = CSTL_MIN((int)list_size(list), index);
 
-    list_node_t *node = insert_list->head;
+    const list_node_t *node = insert_list->head;
     for (; node; node = node->next) {
         list_insert(list, index, node->data);
         ++index;
     }
 }
 
-CSTL_LIB void list_extend_front(LIST *list, LIST *insert_list)
+CSTL_LIB void list_extend_front(LIST *list, const LIST *insert_list)
 {
     assert(list && insert_list);
     list_extend(list, 0, insert_list);
 }
 
-CSTL_LIB void list_extend_back(LIST *list, LIST *insert_list)
+CSTL_LIB void list_extend_back(LIST *list, const LIST *insert_list)
 {
     assert(list && insert_list);
     list_extend(list, list_size(list), insert_list);
@@ -203,13 +203,16 @@ CSTL_LIB void *list_at(LIST *list, int index)
     return list_get(list, index);
 }
 
-CSTL_LIB void list_set(LIST *list, int index, void *value)
+CSTL_LIB void list_set(LIST *list, int index, const void *value)
 {
     assert(list);
     void *data = list_get(list, index);
 
     if (NULL != data) {
-        memcpy(data, value, list->unit_size);
+        if (list->destroy_func) {
+            (*list->destroy_func)(data);
+        }
+        memmove(data, value, list->unit_size);
     }
 }
 
@@ -390,23 +393,23 @@ __list_partition(list_node_t *left, list_node_t *right, cmp_func_t compare)
     void *pivot;
     pivot = left->data;
 
-    while (left < right) {
+    while (left != right) {
 
         // 从右向左左，找第一个比pivot小或相等的数
-        while (left < right && (*compare)(right->data, pivot) > 0)
+        while (left != right && (*compare)(right->data, pivot) > 0)
             right = right->prev;
-        if (left < right) {
+        if (left != right) {
             left->data = right->data;
             left = left->next;
         }
 
 
         // 从左向右找，第一个比pivot大或者相等的数
-        while (left < right && (*compare)(left->data, pivot) < 0) {
+        while (left != right && (*compare)(left->data, pivot) < 0) {
             left = left->next;
         }
 
-        if (left < right) {
+        if (left != right) {
             right->data = left->data;
             right = right->prev;
         }
@@ -424,12 +427,16 @@ __list_quick_sort(list_node_t *left, list_node_t *right, cmp_func_t compare)
     list_node_t *pivot_pos;
 
     // 当left, 或者right == NULL, 说明分块分到只有一个元素的情况，说明这个位置肯定是有序
-    if (left == NULL || right == NULL) return;
+    if ((left == NULL) || (right == NULL) || (left == right)) return;
 
-    if (left < right) {
-        pivot_pos = __list_partition(left, right, compare);
+    pivot_pos = __list_partition(left, right, compare);
 
+    // 因为链表是节点地址的大小关系可能不不是连续的，所以不适用left < right来作为边界
+    // 但是要保证pivot_pos的之前的节点，和之后的节点不能够越界，就只有想下面这个写法
+    if (pivot_pos != left) {
         __list_quick_sort(left, pivot_pos->prev, compare);
+    }
+    if (pivot_pos != right) {
         __list_quick_sort(pivot_pos->next, right, compare);
     }
 }
@@ -445,7 +452,7 @@ CSTL_LIB void list_sort(LIST *list, cmp_func_t compare)
 // 交换两个元素的值
 CSTL_LIB void list_swap(LIST *list, int idx1, int idx2)
 {
-    assert(list && idx1 >= 0 && idx1 < list_size(list) && idx2 >= 0 && idx2 < list_size(list));
+    assert(list && idx1 >= 0 && idx1 < (int)list_size(list) && idx2 >= 0 && idx2 < (int)list_size(list));
 
     list_node_t *node1 = list_get_node(list, idx1);
     list_node_t *node2 = list_get_node(list, idx2);
@@ -472,16 +479,10 @@ CSTL_LIB void list_resize(LIST *list, size_t new_size, void *val)
     assert(list);
     size_t old_size = list_size(list);
 
-    if (old_size == new_size) return;
-
-    list_node_t *node = NULL, *cur = NULL;
     // 缩小
     if (new_size < old_size) {
-        node = list_get_node(list, new_size);
-        while (node) {
-            cur = node;
-            node = node->next;
-            _list_destroy_node(list, cur);
+        while (list_size(list) > new_size) {
+            list_pop_back(list);
         }
     } else { //扩大
         int expand_size = new_size - old_size;
@@ -489,5 +490,4 @@ CSTL_LIB void list_resize(LIST *list, size_t new_size, void *val)
             list_push_back(list, val);
         }
     }
-    list->len = new_size;
 }

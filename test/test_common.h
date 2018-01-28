@@ -31,7 +31,7 @@
 
 
 #ifndef ARRAY_SIZE
-#define ARRAY_SIZE(array, type) (sizeof(array) / sizeof(type))
+#define ARRAY_SIZE(array, type) (int)(sizeof(array) / sizeof(type))
 #endif
 
 #endif //TEST/TEST_COMMON_H_H

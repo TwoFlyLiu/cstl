@@ -23,24 +23,24 @@ void hset_free(hset_t *hset)
     cstl_free(hset);
 }
 
-void hset_insert(hset_t *hset, void *value)
+void hset_insert(hset_t *hset, const void *value)
 {
     assert(hset && value);
     hmap_insert(hset->data, value, NULL);
 }
 
-void hset_erase(hset_t *hset, void *value)
+void hset_erase(hset_t *hset, const void *value)
 {
     assert(hset && value);
     hmap_erase(hset->data, value);
 }
 
-void *hset_find(hset_t *hset, void *value)
+void *hset_find(hset_t *hset, const void *value)
 {
     return hmap_find(hset->data, value);
 }
 
-bool hset_contains(hset_t *hset, void *key)
+bool hset_contains(hset_t *hset, const void *key)
 {
     return (NULL != hset_find(hset, key));
 }

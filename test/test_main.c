@@ -15,6 +15,7 @@ DECLARE_SUITE(wstr);
 DECLARE_SUITE(str_conv);
 DECLARE_SUITE(u8_str);
 DECLARE_SUITE(list);
+DECLARE_SUITE(rmap);
 
 
 // 使用END_CHECK_MAIN_AFTER来当所有测试都结束的时候，执行检测操作
@@ -33,5 +34,6 @@ START_CHECK_MAIN(cstl)
     SUITE(str_conv)
     SUITE(u8_str)
     SUITE(list)
+    SUITE(rmap)
 END_CHECK_MAIN()
 

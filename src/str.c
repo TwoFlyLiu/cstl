@@ -9,7 +9,6 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <strings.h>
-#include <cstl/vec.h>
 #include <regex.h>
 #include <errno.h>
 
@@ -34,6 +33,11 @@ typedef struct CSTLString str_t;
 // 居然有不清晰声明（在msys2中）
 int vsnprintf (char * s, size_t n, const char * format, va_list arg );
 static str_t *_str_realloc(str_t *str, int new_capacity);
+
+static size_t __calc_new_capacity(const str_t *str, size_t char_count)
+{
+    return str_byte_size(str) + CSTL_MAX(str_byte_size(str), char_count) + 1;
+}
 
 CSTL_EXPORT str_t * str_new()
 {
@@ -126,7 +130,7 @@ CSTL_EXPORT str_t* str_append(str_t *str, const char *raw)
 
     len = strlen(raw);
     if (str->capacity - str->len <= len) {
-        str = _str_realloc(str, (str->capacity + len) * 2 + 1);
+        str = _str_realloc(str, __calc_new_capacity(str, len));
     }
 
     strcpy(str->beg + str->len, raw);
@@ -135,11 +139,21 @@ CSTL_EXPORT str_t* str_append(str_t *str, const char *raw)
     return str;
 }
 
+CSTL_EXPORT str_t* str_push_back(str_t *str, char ch)
+{
+    if (str_byte_size(str) + 1 >= str_capacity(str)) {
+        _str_realloc(str, __calc_new_capacity(str, 1));
+    }
+    str->beg[str->len++] = ch;
+    return str;
+}
+
 // 在某个位置上进行插入
 CSTL_LIB str_t* str_insert(str_t *str, int pos, const char *new_str)
 {
     int length;
     
+    assert(str);
     if (new_str == NULL || '\0' == *new_str) {
         return str;
     }
@@ -155,7 +169,7 @@ CSTL_LIB str_t* str_insert(str_t *str, int pos, const char *new_str)
     }
 
     if (str_byte_size(str) + length >= str_capacity(str)) {
-        _str_realloc(str, (str_capacity(str) + length) * 2 + 1);
+        _str_realloc(str, __calc_new_capacity(str, length));
     }
 
     // 将插入点位置上原来元素，统一向后偏移 
@@ -163,10 +177,26 @@ CSTL_LIB str_t* str_insert(str_t *str, int pos, const char *new_str)
         *(str->beg + i + length) = *(str->beg + i);
     }
 
-    memcpy(str->beg + pos, new_str, length);
+    memmove(str->beg + pos, new_str, length);
     str->len += length;
     *(str->beg + str->len) = '\0';
 
+    return str;
+}
+
+CSTL_EXPORT str_t* str_erase(str_t *str, int pos)
+{
+    size_t size = str_byte_size(str);
+    if (size == 0) return str;
+
+    pos = pos < 0 ? 0 : pos;
+    pos = (size_t)pos >= size ? size - 1 : pos;
+
+
+    size = size - 1;
+    memmove(str->beg + pos, str->beg + pos + 1, size - pos);
+    *(str->beg + size) = '\0';
+    str->len = size;
     return str;
 }
 
@@ -195,7 +225,7 @@ CSTL_LIB str_t* str_trim_left(str_t *str)
     // 将右侧的所有字符统一向左侧进行拷贝
     if (pos != str->beg && *pos) { //表明左侧有空白字符，右侧有非空白字符
         str->len -= pos - str->beg;
-        memcpy(str->beg, pos, str->len);
+        memmove(str->beg, pos, str->len);
         *(str->beg + str->len) = '\0';
     } else if (*pos == '\0') { //表示所有内容为空
         str->len = 0;
@@ -482,14 +512,14 @@ CSTL_EXPORT str_t*  str_replace_first(str_t *str, int offset, const char *old_st
 
         if (diff > 0) { //向前偏移diff
             char *old_str_end = str->beg + index + old_len;
-            memcpy(old_str_end - diff, old_str_end, str->len - diff);
+            memmove(old_str_end - diff, old_str_end, str->len - diff);
             str->len -= diff;
             *(str->beg + str->len) = '\0';
         } else if (diff < 0) { // 向后偏移
             diff = -diff;
 
             if (str->len + diff >= str->capacity) {
-                _str_realloc(str, (str->len + diff) * 2 + 1);
+                _str_realloc(str, __calc_new_capacity(str, diff));
             }
 
             int end = index + old_len;
@@ -500,7 +530,7 @@ CSTL_EXPORT str_t*  str_replace_first(str_t *str, int offset, const char *old_st
             str->len += diff;
             *(str->beg + str->len) = '\0';
         } 
-        memcpy(str->beg + index, new_str, new_len);
+        memmove(str->beg + index, new_str, new_len);
     }
 
     return str;
@@ -540,16 +570,9 @@ CSTL_LIB bool   str_contains(const str_t *str, const char *sub)
 
 static str_t *_str_realloc(str_t *str, int new_capacity)
 {
-    char *new_buf = (char*)cstl_malloc(new_capacity * sizeof(char));
-    int resize = new_capacity <= str->len ? new_capacity - 1 : str->len; //去最小的长度进行拷贝
-    strncpy(new_buf, str->beg, resize);
-    *(new_buf + resize) = '\0';
-
-    cstl_free(str->beg); //销毁原来的
-    str->beg = new_buf;
-    str->len = resize;
+    assert(str);
+    str->beg = (char*)cstl_realloc(str->beg, new_capacity * sizeof(char));
     str->capacity = new_capacity;
-
     return str;
 }
 
@@ -559,7 +582,7 @@ CSTL_LIB str_t* str_assign(str_t *str, const char *rhv)
     size_t rhv_len = strlen(rhv);
 
     if (str_capacity(str) <= rhv_len) {
-        _str_realloc(str, (str->capacity + rhv_len) * 2 + 1);
+        _str_realloc(str, __calc_new_capacity(str, rhv_len - str_byte_size(str)));
     }
 
     *str->beg = '\0';
@@ -619,7 +642,7 @@ CSTL_EXPORT VEC*   str_split_lines(str_t *str)
 }
 
 // 此方法主要是为了预分配缓存而设置
-CSTL_EXPORT str_t* str_resize(str_t *str, size_t new_size)
+CSTL_EXPORT str_t* str_resize(str_t *str, size_t new_size, char ch)
 {
     assert(str);
 
@@ -627,12 +650,16 @@ CSTL_EXPORT str_t* str_resize(str_t *str, size_t new_size)
         _str_realloc(str, new_size + 1);
     }
 
-    // 3, 4, 1
+    // 增大
     if (new_size > (size_t)str->len) {
-        memset(str->beg + str->len, 0, new_size - str->len);
+        memset(str->beg + str->len, ch, new_size - str->len);
+        if (ch == '\0') {
+            *(str->beg + new_size) = '\0'; //容量变化，但是字符串的长度病没有发生变化
+            return str;
+        }
     }
 
-    *(str->beg + new_size) = '\0'; //容量变化，但是字符串的长度病没有发生变化
-    str->len = ((size_t)str->len < new_size) ? str->len : new_size;
+    *(str->beg + new_size) = '\0'; //容量变化，字符串长度改变了
+    str->len = new_size;
     return str;
 }

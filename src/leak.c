@@ -35,6 +35,8 @@ static bool auto_test_enabled = false;
 
 static inline memory_record_node_t *
 __malloc_memory_record_node(unsigned int size, const char *fname, int line, const char *expression);
+static inline memory_record_node_t *
+__realloc_memory_record_node(void *ptr, unsigned int size, const char *fname, int line, const char *expression);
 
 static inline void memory_record_lists_insert(memory_record_node_t *record_node);
 static inline void memory_record_lists_remove(void *me);
@@ -75,11 +77,40 @@ __cstl_malloc(unsigned int size, const char *fname, int line, const char *expres
     return node->memory;
 }
 
+CSTL_EXPORT void *__cstl_realloc(void *ptr, unsigned int size, const char *fname
+        , int line_number, const char *expression)
+{
+    // 先移除原来的，然后添加新的
+    if (ptr) { 
+        memory_record_lists_remove(ptr);
+    }
+
+    // 如果size==0, 那么realloc，就相当于调用free(ptr), 所以不进行记录
+    if (size == 0) {
+        return realloc(ptr, 0);
+    }
+
+    // 只要有了新的内存就重新进行记录
+    memory_record_node_t *node = __realloc_memory_record_node(ptr, size, fname, line_number, expression);
+    assert(node && node->memory && "realloc memory record node failed!");
+
+    // realloc当内存重新分配失败, 那么原来的内存还有效
+    if (NULL == node->memory) {
+        node->memory = ptr;
+        memory_record_lists_insert(node);
+        return NULL;
+    } else {
+        memory_record_lists_insert(node);
+        return node->memory;
+    }
+}
+
 CSTL_EXPORT void 
 __cstl_free(void *mem)
 {
     if (mem == NULL) return;
     memory_record_lists_remove(mem);
+    free(mem);
 }
 
 CSTL_EXPORT int __cstl_leak_test(bool verbose)
@@ -92,6 +123,19 @@ __malloc_memory_record_node(unsigned int size, const char *fname, int line, cons
 {
     memory_record_node_t *node = (memory_record_node_t*)malloc(sizeof(memory_record_node_t));
     node->memory = malloc(size);
+    node->len = size;
+    strcpy(node->fname, fname);
+    strcpy(node->expression, expression);
+    node->line_number = line;
+    node->next = NULL;
+    return node;
+}
+
+static inline memory_record_node_t *
+__realloc_memory_record_node(void *ptr, unsigned int size, const char *fname, int line, const char *expression)
+{
+    memory_record_node_t *node = (memory_record_node_t*)malloc(sizeof(memory_record_node_t));
+    node->memory = realloc(ptr, size);
     node->len = size;
     strcpy(node->fname, fname);
     strcpy(node->expression, expression);
@@ -159,7 +203,7 @@ static inline void memory_record_lists_remove(void *mem)
     }
 
     // 释放内存
-    free(node->memory);
+    /*free(node->memory);*/
     free(node);
 
     pthread_mutex_unlock(&lists_mutex);

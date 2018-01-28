@@ -154,7 +154,7 @@ START_TEST(test_for_each) {
 END_TEST
 
 static unsigned int
-__str_hash_func(void *key)
+__str_hash_func(const void *key)
 {
     char *v_key = (char *)key;
     int len = strlen(v_key);
@@ -167,7 +167,7 @@ __str_hash_func(void *key)
 }
 
 static int
-__str_cmp(void *lhs, void *rhs)
+__str_cmp(const void *lhs, const void *rhs)
 {
     return strcmp((char*)lhs, (char*)rhs);
 }
@@ -179,9 +179,9 @@ typedef struct {
 
 // hmap中的数据是无序的
 static void
-__str_for_each(void *key, void *value, void *user_data)
+__str_for_each(const void *key, void *value, void *user_data)
 {
-    char *v_key = (char*)key;
+    const char *v_key = (const char*)key;
     int v_value = *(int*)value;
     user_data = NULL;
     printf("key=%s, val=%d\n", v_key, v_value);

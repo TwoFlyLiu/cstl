@@ -74,7 +74,6 @@ END_TEST
 
 START_TEST(test_str_to_utf8) {
     str_t *str = str_new_from("hello, 中国");
-
     u8_str_t *u8 = str_to_u8_str(str);
     ck_assert_str_eq("hello, \xe4\xb8\xad\xe5\x9b\xbd", u8_str_c_u8_str(u8));
     u8_str_free(u8);
@@ -257,7 +256,7 @@ START_DEFINE_SUITE(str_conv)
     TEST(test_utf8_to_gbk)
     TEST(test_gbk_to_wstr)
     TEST(test_gbk_to_utf8)
-    /*TEST(test_part_invalid_gbk_to_utf8)*/
+    /*[>TEST(test_part_invalid_gbk_to_utf8)<]*/
     TEST(test_gbk_to_str)
     TEST(test_str_to_gbk)
 END_DEFINE_SUITE()

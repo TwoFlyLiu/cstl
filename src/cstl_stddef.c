@@ -6,10 +6,12 @@
 */
 #include <math.h>
 #include <sys/types.h>
+#include <stdlib.h>
+#include <stdint.h>
 
 // 定义有符号整数的比较函数
 #define __CSTL_DEFINE_SIGNED_INTEGER_NUM_CMP_FUNC(type) \
-    int __cstl_##type##_cmp_func(type *lhv, type *rhv) {\
+    int __cstl_##type##_cmp_func(const type *lhv, const type *rhv) {\
         return (*lhv - *rhv);\
     }
 
@@ -21,7 +23,7 @@
 
 // 定义小数的比较函数
 #define __CSTL_DEFINE_FLOAT_NUM_CMP_FUNC(type) \
-    int __cstl_##type##_cmp_func(type *lhv, type *rhv) {\
+    int __cstl_##type##_cmp_func(const type *lhv, const type *rhv) {\
         type diff = *lhv - *rhv;\
         return (fabs(diff) < 1e-6) ? 0 : (int)diff;\
     }
@@ -39,7 +41,7 @@ __CSTL_DEFINE_FLOAT_NUM_CMP_FUNC(double)
 // 定义常见的hash函数
 
 #define __CSTL_DEFINE_SIGNED_NUM_HASH_FUNC(type) \
-    unsigned int __cstl_##type##_hash_func(type *value) {\
+    unsigned int __cstl_##type##_hash_func(const type *value) {\
         return (unsigned int)*value;\
     }        
 
@@ -50,7 +52,7 @@ __CSTL_DEFINE_SIGNED_NUM_HASH_FUNC(int)
 __CSTL_DEFINE_SIGNED_NUM_HASH_FUNC(long)
 
 unsigned int
-__cstl_str_hash_func(char *value) {
+__cstl_str_hash_func(const char *value) {
     int hash_val = 0;
     while (*value) {
         hash_val += *value++;
@@ -60,13 +62,13 @@ __cstl_str_hash_func(char *value) {
 
 #if defined(__STDC__) && defined(__STDC_VERSION__) &&  (__STDC_VERSION__ > 199901L)
 
-int __cstl_long_long_cmp_func(long long *lhv, long long *rhv)
+int __cstl_long_long_cmp_func(const long long *lhv, const long long *rhv)
 {
     return *lhv - *rhv;
 }
 
 int
-__cstl_long_long_hash_func(long long *value)
+__cstl_long_long_hash_func(const long long *value)
 {
     return (int)*value;
 }
@@ -78,7 +80,7 @@ void __cstl_destroy_func(void *value)
     value = NULL; //镇压编译器警告
 }
 
-unsigned int __cstl_ptr_hash_func(void *ptr)
+unsigned int __cstl_ptr_hash_func(const void *ptr)
 {
     return (unsigned int)(uintptr_t)ptr;
 }

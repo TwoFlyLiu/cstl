@@ -36,12 +36,17 @@ CSTL_EXPORT str_t *wstr_to_str(const wstr_t *wstr)
     return str;
 }
 
+
 CSTL_EXPORT u8_str_t *wstr_to_u8_str(const wstr_t *wstr)
 {
     assert(wstr);
 
     const char *to_code = "UTF-8//IGNORE";
-    const char *from_code = "UTF-16LE"; // msys上，utf16是小端存储
+#if defined(LINUX)
+    const char *from_code = "UTF-32LE"; // msys上，utf16是小端存储, 在linux上是utf32小端
+#else
+    const char *from_code = "UTF-16LE"; // msys上，utf16是小端存储, 在linux上是utf32小端
+#endif
 
     int len = wstr_size(wstr) * 3 + 1;
     char *buf = (char*)cstl_malloc(len);
@@ -50,7 +55,10 @@ CSTL_EXPORT u8_str_t *wstr_to_u8_str(const wstr_t *wstr)
     char *out = buf;
     size_t out_left = len;
 
-    char *in = (char*)wstr_c_wstr((wstr_t*)wstr);
+    // 对于linux wchar_t是4个字节(大部分真正有效的是前两个字节)，iconv应该对于Utf16只识别2个字节
+    // 这儿就是将每个wchar_t转换为有效的两个字节
+    /*char *in_buf = (char*)malloc((wstr_size(wstr) + 1) * 2);*/
+    char *in= (char*)wstr_c_wstr((wstr_t*)wstr);
     size_t in_left = (wstr_size(wstr) + 1) * sizeof(wchar_t);
 
     iconv_t  icv = iconv_open(to_code, from_code);
@@ -71,7 +79,7 @@ CSTL_EXPORT u8_str_t *wstr_to_u8_str(const wstr_t *wstr)
 CSTL_EXPORT wstr_t *str_to_wstr(const str_t *str)
 {
     int len = str_byte_size(str) + 1;
-    wchar_t *buf = cstl_malloc(len);
+    wchar_t *buf = cstl_malloc(len * sizeof(wchar_t));
     char *old_locale = setlocale(LC_ALL, NULL);
     setlocale(LC_ALL, "");
     *buf = '\0';
@@ -99,10 +107,14 @@ CSTL_EXPORT wstr_t *u8_str_to_wstr(const u8_str_t *u8_str)
 {
     assert(u8_str);
 
+#ifdef LINUX
+    const char *to_code = "UTF-32LE//IGNORE"; // msys上，utf16是小端存储
+#else
     const char *to_code = "UTF-16LE//IGNORE"; // msys上，utf16是小端存储
+#endif
     const char *from_code = "UTF-8";
 
-    int len = u8_str_size(u8_str) * 2  + 1;
+    int len = u8_str_size(u8_str) + 1;
     wchar_t *buf = (wchar_t*)cstl_malloc(len * sizeof(wchar_t));
     *buf = L'\0';
 
@@ -110,7 +122,7 @@ CSTL_EXPORT wstr_t *u8_str_to_wstr(const u8_str_t *u8_str)
     size_t out_left = len * sizeof(wchar_t);
 
     char *in = (char*)u8_str_c_u8_str((u8_str_t*)u8_str);
-    size_t in_left = u8_str_byte_count(u8_str);
+    size_t in_left = u8_str_byte_count(u8_str); //要把'\0'，页输出去
 
     iconv_t  icv = iconv_open(to_code, from_code);
     assert((iconv_t)-1 != icv);
@@ -118,8 +130,7 @@ CSTL_EXPORT wstr_t *u8_str_to_wstr(const u8_str_t *u8_str)
     size_t UNUSED nbytes = iconv(icv, &in, &in_left, &out, &out_left);
     assert((size_t)-1 != nbytes);
     iconv_close(icv);
-
-    *out = L'\0'; //添加空结束标志
+    *((wchar_t*)out) = L'\0';
 
     wstr_t *wstr = wstr_new_from(buf);
     cstl_free(buf);
@@ -140,7 +151,11 @@ CSTL_EXPORT str_t *wstr_to_gbk(const wstr_t *wstr)
     assert(wstr);
 
     const char *to_code = "GB18030//IGNORE";
+#ifdef LINUX
+    const char *from_code = "UTF-32LE"; // msys上，utf16是小端存储
+#else
     const char *from_code = "UTF-16LE"; // msys上，utf16是小端存储
+#endif
 
     int len = wstr_size(wstr) * 2 + 1;
     char *buf = (char*)cstl_malloc(len);
@@ -150,7 +165,7 @@ CSTL_EXPORT str_t *wstr_to_gbk(const wstr_t *wstr)
     size_t out_left = len;
 
     char *in = (char*)wstr_c_wstr((wstr_t*)wstr);
-    size_t in_left = (wstr_size(wstr) + 1) * sizeof(wchar_t);
+    size_t in_left = (wstr_size(wstr) + 1) * sizeof(wchar_t); //会写出结束标志的，因为+1
 
     iconv_t  icv = iconv_open(to_code, from_code);
     assert((iconv_t)-1 != icv);
@@ -158,8 +173,6 @@ CSTL_EXPORT str_t *wstr_to_gbk(const wstr_t *wstr)
     size_t UNUSED nbytes = iconv(icv, &in, &in_left, &out, &out_left);
     assert((size_t)-1 != nbytes);
     iconv_close(icv);
-
-    *out = '\0'; //添加空结束标志
 
     str_t *gbk = str_new_from(buf);
     cstl_free(buf);
@@ -199,12 +212,15 @@ CSTL_EXPORT str_t *u8_str_to_gbk(const u8_str_t *u8)
 CSTL_EXPORT wstr_t *gbk_to_wstr(const str_t *gbk)
 {
     assert(gbk);
-
+#ifdef LINUX
+    const char *to_code = "UTF-32LE//IGNORE"; // msys上，utf16是小端存储
+#else
     const char *to_code = "UTF-16LE//IGNORE"; // msys上，utf16是小端存储
+#endif
     const char *from_code = "GB18030";
 
     int gbk_len = str_byte_size(gbk);
-    int len = gbk_len * 2  + 1;
+    int len = gbk_len + 1;
     wchar_t *buf = (wchar_t*)cstl_malloc(len * sizeof(wchar_t));
     *buf = L'\0';
 
@@ -212,7 +228,7 @@ CSTL_EXPORT wstr_t *gbk_to_wstr(const str_t *gbk)
     size_t out_left = len * sizeof(wchar_t);
 
     char *in = str_c_str((str_t*)gbk);
-    size_t in_left = gbk_len + 1;
+    size_t in_left = gbk_len + 1; // 也有空结束标志
 
     iconv_t  icv = iconv_open(to_code, from_code);
     assert((iconv_t)-1 != icv);
@@ -220,8 +236,6 @@ CSTL_EXPORT wstr_t *gbk_to_wstr(const str_t *gbk)
     size_t UNUSED nbytes = iconv(icv, &in, &in_left, &out, &out_left);
     assert((size_t)-1 != nbytes);
     iconv_close(icv);
-
-    *out = L'\0'; //添加空结束标志
 
     wstr_t *wstr = wstr_new_from(buf);
     cstl_free(buf);

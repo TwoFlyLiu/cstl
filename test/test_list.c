@@ -7,6 +7,7 @@
 #include <check_util.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include "list.h"
 #include "test_common.h"
@@ -76,11 +77,11 @@ START_TEST(test_resize) {
     ck_assert_int_eq((size_t)-1, list_capacity(list));
     ck_assert_int_eq(6, list_size(list));
 
-    for (size_t i = 0; i < 6; i++) {
+    for (size_t i = 0; i < list_size(list); i++) {
         ck_assert_int_eq(datas[i], *(int*)list_get(list, i));
     }
 
-    // 使用resize来扩大容量
+     /*使用resize来扩大容量*/
     list_resize(list, 100, &default_value);
     ck_assert_int_eq(100, list_size(list));
     ck_assert_int_eq(default_value, *(int*)list_get(list, 99));
@@ -214,7 +215,7 @@ typedef struct {
     int x, y;
 } POINT;
 
-static int __point_compare(void *lhs, void *rhs)
+static int __point_compare(const void *lhs, const void *rhs)
 {
     POINT *pt_lhs = (POINT *)lhs;
     POINT *pt_rhs = (POINT *)rhs;
@@ -635,7 +636,7 @@ typedef struct {
 } data_t, DATA;
 
 static int
-__data_cmp(void *lhs, void *rhs)
+__data_cmp(const void *lhs, const void *rhs)
 {
     DATA *v_lhs = (DATA *)lhs;
     DATA *v_rhs = (DATA *)rhs;
@@ -654,7 +655,7 @@ typedef struct {
 } person_t, PERSON;
 
 static int
-__person_name_cmp(void *lhs, void *rhs)
+__person_name_cmp(const void *lhs, const void *rhs)
 {
     PERSON *v_lhs = (PERSON*)lhs;
     PERSON *v_rhs = (PERSON*)rhs;
@@ -663,7 +664,7 @@ __person_name_cmp(void *lhs, void *rhs)
 }
 
 static int
-__person_age_cmp(void *lhs, void *rhs)
+__person_age_cmp(const void *lhs, const void *rhs)
 {
     PERSON *v_lhs = (PERSON*)lhs;
     PERSON *v_rhs = (PERSON*)rhs;
@@ -679,8 +680,9 @@ typedef struct {
     int index;
 } expect_person_t;
 
-static void _ck_assert_persons(void *p, void *e)
+static void _ck_assert_persons_eq(void *p, void *e)
 {
+    ck_assert(p && e);
     person_t* person = (person_t*)p;
     expect_person_t *ep = (expect_person_t*)e;
     person_t *expect_person = &(ep->expect_persons[ep->index++]);
@@ -692,27 +694,6 @@ static void _ck_assert_persons(void *p, void *e)
 START_TEST(test_struct_list) {
     LIST *list = int_list_new();
     DATA data;
-
-    PERSON zs = {.name="zs", .age=22};
-    PERSON ls = {.name="ls", .age=25};
-    PERSON wh = {.name="wh", .age=18};
-    PERSON tt = {.name="tt", .age=20};
-
-    PERSON expected_persons_sort_by_name[] = {
-        {.name="ls", .age=25},
-        {.name="tt", .age=20},
-        {.name="wh", .age=18},
-        {.name="zs", .age=22}
-    };
-
-    PERSON expected_persons_sort_by_age[] = {
-        {.name="wh", .age=18},
-        {.name="tt", .age=20},
-        {.name="zs", .age=22},
-        {.name="ls", .age=25}
-    };
-
-    expect_person_t ep;
 
     int_list_push_back(list, 5);
     int_list_push_back(list, 1);
@@ -752,6 +733,27 @@ START_TEST(test_struct_list) {
 
     list_free(list);
 
+    PERSON zs = {.name="zs", .age=22};
+    PERSON ls = {.name="ls", .age=25};
+    PERSON wh = {.name="wh", .age=18};
+    PERSON tt = {.name="tt", .age=20};
+
+    PERSON expected_persons_sort_by_name[] = {
+        {.name="ls", .age=25},
+        {.name="tt", .age=20},
+        {.name="wh", .age=18},
+        {.name="zs", .age=22}
+    };
+
+    PERSON expected_persons_sort_by_age[] = {
+        {.name="wh", .age=18},
+        {.name="tt", .age=20},
+        {.name="zs", .age=22},
+        {.name="ls", .age=25}
+    };
+
+    expect_person_t ep;
+
 
     list = person_t_list_new();
     
@@ -763,12 +765,14 @@ START_TEST(test_struct_list) {
     ep.index = 0;
     ep.expect_persons = expected_persons_sort_by_name;
     person_t_list_sort(list);
-    list_foreach(list, _ck_assert_persons, &ep);
+    list_foreach(list, _ck_assert_persons_eq, &ep);
 
     ep.index = 0;
     ep.expect_persons = expected_persons_sort_by_age;
     person_t_list_sort(list);
-    person_t_list_sort_func(list, __person_age_cmp);
+    /*person_t_list_sort_func(list, __person_age_cmp);*/
+    list_sort(list, __person_age_cmp);
+    list_foreach(list, _ck_assert_persons_eq, &ep);
 
     list_free(list);
     ck_assert_no_leak();
@@ -803,7 +807,7 @@ START_TEST(test_bin_find)
     ck_assert(list_bin_find(list, &n_datas[0], CSTL_NUM_CMP_FUNC(int)) == NULL);
     ck_assert(list_bin_find(list, &datas[0], CSTL_NUM_CMP_FUNC(int)) != NULL);
 
-    // 两个值，查找，保证结果正确
+    /*// 两个值，查找，保证结果正确*/
     list_clear(list);
     ck_assert_int_eq(0, list_size(list));
 

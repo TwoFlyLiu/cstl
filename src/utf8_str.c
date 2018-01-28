@@ -71,8 +71,9 @@ typedef struct CSTLUtf8String u8_str_t;
 
 CSTL_EXPORT u8_str_t * u8_str_new();
 CSTL_EXPORT u8_str_t * 
-    u8_str_new_from(byte_t *bytes, int length, const char *charset)
+    u8_str_new_from(const byte_t *bytes, int length, const char *charset)
 {
+    assert(bytes && charset && length >= 0);
     char *u8_raw = raw_to_u8_raw(bytes, length, charset);
     str_t *u8_data = str_new_from(u8_raw);
     cstl_free(u8_raw);
@@ -84,22 +85,22 @@ CSTL_EXPORT u8_str_t *
 
 CSTL_EXPORT u8_str_t * u8_str_new_from_ascii(const char *bytes)
 {
-    return u8_str_new_from((byte_t*)bytes, strlen(bytes), "ASCII");
+    return u8_str_new_from((byte_t*)bytes, strlen(bytes), CSTL_ASCII);
 }
 
 CSTL_EXPORT u8_str_t * u8_str_new_from_gbk(const char *bytes)
 {
-    return u8_str_new_from((byte_t*)bytes, strlen(bytes), "GB18030");
+    return u8_str_new_from((byte_t*)bytes, strlen(bytes), CSTL_GBK);
 }
 
 CSTL_EXPORT u8_str_t * u8_str_new_from_u8(const char *bytes)
 {
-    return u8_str_new_from((byte_t*)bytes, strlen(bytes), "UTF-8"); //之所以要这样是为了利用iconv去除bytes的无效字符和不完整字符
+    return u8_str_new_from((byte_t*)bytes, strlen(bytes), CSTL_UTF8); //之所以要这样是为了利用iconv去除bytes的无效字符和不完整字符
 }
 
-CSTL_EXPORT u8_str_t * u8_str_new_from_u16(const wchar_t *bytes)
+CSTL_EXPORT u8_str_t * u8_str_new_from_uni(const wchar_t *bytes)
 {
-    return u8_str_new_from((byte_t*)bytes, wcslen(bytes) * sizeof(wchar_t), "UTF-16LE");
+    return u8_str_new_from((byte_t*)bytes, wcslen(bytes) * sizeof(wchar_t), CSTL_UNICODE);
 }
 
 CSTL_EXPORT void u8_str_free(u8_str_t *u8_str)
@@ -142,7 +143,7 @@ CSTL_EXPORT size_t u8_str_capacity(const u8_str_t *u8_str)
 CSTL_EXPORT u8_str_t* u8_str_append(u8_str_t *u8_str, byte_t *bytes,
         int len, const char *const charset)
 {
-    assert(u8_str);
+    assert(u8_str && bytes && charset);
 
     char *u8_raw = raw_to_u8_raw(bytes, len, charset);
     str_append(u8_str->data, u8_raw);
@@ -154,31 +155,31 @@ CSTL_EXPORT u8_str_t* u8_str_append(u8_str_t *u8_str, byte_t *bytes,
 CSTL_EXPORT u8_str_t* u8_str_append_ascii(u8_str_t *u8_str, const char *ascii_str)
 {
     assert(u8_str);
-    return u8_str_append(u8_str, (byte_t*)ascii_str, strlen(ascii_str), "ASCII");
+    return u8_str_append(u8_str, (byte_t*)ascii_str, strlen(ascii_str), CSTL_ASCII);
 }
 
 CSTL_EXPORT u8_str_t* u8_str_append_gbk(u8_str_t *u8_str, const char *gbk_str)
 {
     assert(u8_str);
-    return u8_str_append(u8_str, (byte_t*)gbk_str, strlen(gbk_str), "GB18030");
+    return u8_str_append(u8_str, (byte_t*)gbk_str, strlen(gbk_str), CSTL_GBK);
 }
 
 CSTL_EXPORT u8_str_t* u8_str_append_u8(u8_str_t *u8_str, const char *u8str)
 {
     assert(u8_str);
-    return u8_str_append(u8_str, (byte_t*)u8str, strlen(u8str), "UTF-8");
+    return u8_str_append(u8_str, (byte_t*)u8str, strlen(u8str), CSTL_UTF8);
 }
 
-CSTL_EXPORT u8_str_t* u8_str_append_u16(u8_str_t *u8_str, const wchar_t *u16str)
+CSTL_EXPORT u8_str_t* u8_str_append_uni(u8_str_t *u8_str, const wchar_t *unistr)
 {
     assert(u8_str);
-    return u8_str_append(u8_str, (byte_t*)u16str, wcslen(u16str) * sizeof(wchar_t), "UTF-16LE");
+    return u8_str_append(u8_str, (byte_t*)unistr, wcslen(unistr) * sizeof(wchar_t), CSTL_UNICODE);
 }
 
 CSTL_EXPORT u8_str_t* u8_str_insert(u8_str_t *u8_str, int pos, const byte_t *bytes,
         int len, const char *const charset)
 {
-    assert(u8_str);
+    assert(u8_str && bytes && charset);
 
     pos = (pos < 0) ? 0 : pos;
     pos = ((size_t)pos >= u8_str_size(u8_str)) ? u8_str_size(u8_str) : pos;
@@ -197,25 +198,25 @@ CSTL_EXPORT u8_str_t* u8_str_insert(u8_str_t *u8_str, int pos, const byte_t *byt
 CSTL_EXPORT u8_str_t* u8_str_insert_ascii(u8_str_t *u8_str, int pos, const char* bytes)
 {
     assert(u8_str);
-    return u8_str_insert(u8_str, pos, (const byte_t*)bytes, strlen(bytes), "ASCII");
+    return u8_str_insert(u8_str, pos, (const byte_t*)bytes, strlen(bytes), CSTL_ASCII);
 }
 
 CSTL_EXPORT u8_str_t* u8_str_insert_gbk(u8_str_t *u8_str, int pos, const char* bytes)
 {
     assert(u8_str);
-    return u8_str_insert(u8_str, pos, (const byte_t*)bytes, strlen(bytes), "GB18030");
+    return u8_str_insert(u8_str, pos, (const byte_t*)bytes, strlen(bytes), CSTL_GBK);
 }
 
 CSTL_EXPORT u8_str_t* u8_str_insert_u8(u8_str_t *u8_str, int pos, const char* bytes)
 {
     assert(u8_str);
-    return u8_str_insert(u8_str, pos, (const byte_t*)bytes, strlen(bytes), "UTF-8");
+    return u8_str_insert(u8_str, pos, (const byte_t*)bytes, strlen(bytes), CSTL_UTF8);
 }
 
-CSTL_EXPORT u8_str_t* u8_str_insert_u16(u8_str_t *u8_str, int pos, const wchar_t* bytes)
+CSTL_EXPORT u8_str_t* u8_str_insert_uni(u8_str_t *u8_str, int pos, const wchar_t* bytes)
 {
     assert(u8_str);
-    return u8_str_insert(u8_str, pos, (const byte_t*)bytes, wcslen(bytes) * sizeof(wchar_t), "UTF-16LE");
+    return u8_str_insert(u8_str, pos, (const byte_t*)bytes, wcslen(bytes) * sizeof(wchar_t), CSTL_UNICODE);
 }
 
 // 获取某个字符(因为一个字符可能有多个字节，所以返回u8_str_t)
@@ -273,7 +274,7 @@ CSTL_EXPORT u8_str_t* u8_str_trim_right(u8_str_t *u8_str)
 CSTL_EXPORT VEC*   u8_str_split(u8_str_t *u8_str, const byte_t *regex, int len,
         const char *const charset)
 {
-    assert(u8_str && regex);
+    assert(u8_str && regex && charset);
 
     VEC *vec = vec_new(sizeof(u8_str_t*), (destroy_func_t)u8_str_ptr_destroy);
     char *raw_regex = raw_to_u8_raw(regex, len, charset);
@@ -327,10 +328,10 @@ CSTL_EXPORT VEC*   u8_str_split_u8(u8_str_t *u8_str, const char *regex)
     return u8_str_split(u8_str, (byte_t*)regex, strlen(regex), CSTL_UTF8);
 }
 
-CSTL_EXPORT VEC*   u8_str_split_u16(u8_str_t *u8_str, const wchar_t *regex)
+CSTL_EXPORT VEC*   u8_str_split_uni(u8_str_t *u8_str, const wchar_t *regex)
 {
     assert(u8_str && regex);
-    return u8_str_split(u8_str, (byte_t*)regex, wcslen(regex) * sizeof(wchar_t), CSTL_UTF16);
+    return u8_str_split(u8_str, (byte_t*)regex, wcslen(regex) * sizeof(wchar_t), CSTL_UNICODE);
 }
 
 
@@ -369,10 +370,10 @@ CSTL_EXPORT int    u8_str_cmp_u8(u8_str_t *u8_str, const char *rhv)
     return u8_str_cmp(u8_str, (const byte_t*)rhv, strlen(rhv), CSTL_UTF8);
 }
 
-CSTL_EXPORT int    u8_str_cmp_u16(u8_str_t *u8_str, const wchar_t *rhv)
+CSTL_EXPORT int    u8_str_cmp_uni(u8_str_t *u8_str, const wchar_t *rhv)
 {
     assert(u8_str && rhv);
-    return u8_str_cmp(u8_str, (const byte_t*)rhv, wcslen(rhv) * sizeof(wchar_t), CSTL_UTF16);
+    return u8_str_cmp(u8_str, (const byte_t*)rhv, wcslen(rhv) * sizeof(wchar_t), CSTL_UNICODE);
 }
 
 ////////////////////////////////////////测试函数//////////////////////////////
@@ -406,10 +407,10 @@ CSTL_EXPORT bool   u8_str_contains_u8(const u8_str_t *u8_str, const char *sub)
     return u8_str_contains(u8_str, (byte_t*)sub, strlen(sub), CSTL_UTF8);
 }
 
-CSTL_EXPORT bool   u8_str_contains_u16(const u8_str_t *u8_str, const wchar_t *sub)
+CSTL_EXPORT bool   u8_str_contains_uni(const u8_str_t *u8_str, const wchar_t *sub)
 {
     assert(u8_str && sub);
-    return u8_str_contains(u8_str, (byte_t*)sub, wcslen(sub) * sizeof(wchar_t), CSTL_UTF16);
+    return u8_str_contains(u8_str, (byte_t*)sub, wcslen(sub) * sizeof(wchar_t), CSTL_UNICODE);
 }
 
 // 比较两者内容释放相等
@@ -441,17 +442,17 @@ CSTL_EXPORT bool   u8_str_equals_u8(const u8_str_t *u8_str, const char *rhv)
     return u8_str_equals(u8_str, (byte_t*)rhv, strlen(rhv), CSTL_UTF8);
 }
 
-CSTL_EXPORT bool   u8_str_equals_u16(const u8_str_t *u8_str, const wchar_t *rhv)
+CSTL_EXPORT bool   u8_str_equals_uni(const u8_str_t *u8_str, const wchar_t *rhv)
 {
     assert(u8_str && rhv);
-    return u8_str_equals(u8_str, (byte_t*)rhv, wcslen(rhv) * sizeof(wchar_t), CSTL_UTF16);
+    return u8_str_equals(u8_str, (byte_t*)rhv, wcslen(rhv) * sizeof(wchar_t), CSTL_UNICODE);
 }
 
 // 忽略大小写比较
 CSTL_EXPORT bool   u8_str_equals_ignore_case(const u8_str_t *u8_str, const byte_t *rhv,
         size_t len, const char *const charset)
 {
-    assert(u8_str && rhv);
+    assert(u8_str && rhv && charset);
     char *u8_rhv = raw_to_u8_raw(rhv, len ,charset);
     bool res = str_equals_ignore_case(u8_str->data, u8_rhv);
     cstl_free(u8_rhv);
@@ -476,10 +477,10 @@ CSTL_EXPORT bool   u8_str_equals_ignore_case_u8(const u8_str_t *u8_str, const ch
     return u8_str_equals_ignore_case(u8_str, (byte_t*)rhv, strlen(rhv), CSTL_UTF8);
 }
 
-CSTL_EXPORT bool   u8_str_equals_ignore_case_u16(const u8_str_t *u8_str, const wchar_t *rhv)
+CSTL_EXPORT bool   u8_str_equals_ignore_case_uni(const u8_str_t *u8_str, const wchar_t *rhv)
 {
     assert(u8_str && rhv);
-    return u8_str_equals_ignore_case(u8_str, (byte_t*)rhv, wcslen(rhv) * sizeof(wchar_t), CSTL_UTF16);
+    return u8_str_equals_ignore_case(u8_str, (byte_t*)rhv, wcslen(rhv) * sizeof(wchar_t), CSTL_UNICODE);
 }
 
 // 检测是否为空
@@ -493,7 +494,7 @@ CSTL_EXPORT inline bool   u8_str_empty(const u8_str_t *u8_str)
 CSTL_EXPORT bool   u8_str_matches(u8_str_t *u8_str, const byte_t *regex, size_t len, 
         const char *const charset)
 {
-    assert(u8_str && regex);
+    assert(u8_str && regex && charset);
     char *u8_regex = raw_to_u8_raw(regex, len, charset);
     bool res = str_matches(u8_str->data, u8_regex);
     cstl_free(u8_regex);
@@ -518,10 +519,10 @@ CSTL_EXPORT bool   u8_str_matches_u8(u8_str_t *u8_str, const char *regex)
     return u8_str_matches(u8_str, (byte_t*)regex, strlen(regex), CSTL_UTF8);
 }
 
-CSTL_EXPORT bool   u8_str_matches_u16(u8_str_t *u8_str, const wchar_t *regex)
+CSTL_EXPORT bool   u8_str_matches_uni(u8_str_t *u8_str, const wchar_t *regex)
 {
     assert(u8_str && regex);
-    return u8_str_matches(u8_str, (byte_t*)regex, wcslen(regex) * sizeof(wchar_t), CSTL_UTF16);
+    return u8_str_matches(u8_str, (byte_t*)regex, wcslen(regex) * sizeof(wchar_t), CSTL_UNICODE);
 }
 
 // 测试是否以value开头
@@ -553,10 +554,10 @@ CSTL_EXPORT bool   u8_str_starts_with_u8(const u8_str_t *u8_str, const char *val
     return u8_str_starts_with(u8_str, (byte_t*)value, strlen(value), CSTL_UTF8);
 }
 
-CSTL_EXPORT bool   u8_str_starts_with_u16(const u8_str_t *u8_str, const wchar_t *value)
+CSTL_EXPORT bool   u8_str_starts_with_uni(const u8_str_t *u8_str, const wchar_t *value)
 {
     assert(u8_str && value);
-    return u8_str_starts_with(u8_str, (byte_t*)value, wcslen(value) * sizeof(wchar_t), CSTL_UTF16);
+    return u8_str_starts_with(u8_str, (byte_t*)value, wcslen(value) * sizeof(wchar_t), CSTL_UNICODE);
 }
 
 CSTL_EXPORT unsigned int    u8_str_hash_code(u8_str_t *u8_str)
@@ -567,7 +568,7 @@ CSTL_EXPORT unsigned int    u8_str_hash_code(u8_str_t *u8_str)
 
 CSTL_EXPORT unsigned int    u8_str_ptr_hash_code(u8_str_t **u8_str)
 {
-    assert(u8_str);
+    assert(u8_str && *u8_str);
     return u8_str_hash_code((*u8_str));
 }
 
@@ -605,10 +606,10 @@ CSTL_EXPORT u8_str_t* u8_str_assign_u8(u8_str_t *u8_str, const char *rhv)
     return u8_str_assign(u8_str, (byte_t*)rhv, strlen(rhv), CSTL_UTF8);
 }
 
-CSTL_EXPORT u8_str_t* u8_str_assign_u16(u8_str_t *u8_str, const wchar_t *rhv)
+CSTL_EXPORT u8_str_t* u8_str_assign_uni(u8_str_t *u8_str, const wchar_t *rhv)
 {
     assert(u8_str && rhv);
-    return u8_str_assign(u8_str, (byte_t*)rhv, wcslen(rhv) * sizeof(wchar_t), CSTL_UTF16);
+    return u8_str_assign(u8_str, (byte_t*)rhv, wcslen(rhv) * sizeof(wchar_t), CSTL_UNICODE);
 }
 
 
@@ -616,6 +617,8 @@ CSTL_EXPORT const char* u8_raw_offset(const char* u8_raw, size_t offset)
 {
     unsigned char ch;
     int hbit;
+
+    assert(u8_raw);
 
     // 一次循环相当于偏移一次
     while (*u8_raw && offset > 0) {
@@ -712,6 +715,7 @@ CSTL_EXPORT int    u8_str_index_of(const u8_str_t *u8_str, int from_index, const
         const char *const charset)
 {
     assert(u8_str && val && charset);
+    from_index = from_index < 0 ? 0 : from_index;
     int raw_from_index = u8_str_u8_pos_to_raw_pos(u8_str, from_index);
     char *raw_val = raw_to_u8_raw(val, len, charset);
     int res = str_index_of(u8_str->data, raw_from_index, raw_val);
@@ -740,11 +744,11 @@ CSTL_EXPORT int    u8_str_index_of_u8(u8_str_t *u8_str, int from_index, const ch
             CSTL_UTF8);
 }
 
-CSTL_EXPORT int    u8_str_index_of_u16(u8_str_t *u8_str, int from_index, const wchar_t *val)
+CSTL_EXPORT int    u8_str_index_of_uni(u8_str_t *u8_str, int from_index, const wchar_t *val)
 {
     assert(u8_str && val);
     return u8_str_index_of(u8_str, from_index, (byte_t*)val,
-            wcslen(val) * sizeof(wchar_t), CSTL_UTF16);
+            wcslen(val) * sizeof(wchar_t), CSTL_UNICODE);
 }
 
 
@@ -752,7 +756,8 @@ CSTL_EXPORT int    u8_str_rindex_of(const u8_str_t *u8_str, int from_index, cons
         int len, const char *const charset)
 {
     assert(u8_str && val && charset);
-    int raw_from_index = u8_str_u8_pos_to_raw_pos(u8_str, from_index);
+    from_index = from_index < 0 ? u8_str_size(u8_str) - 1 : from_index; // 如果from_index小于0，则会从末尾向前进行查找
+    int raw_from_index = u8_str_u8_pos_to_raw_pos(u8_str, from_index + 1) - 1; //定位到utf8字符指定索引位置字符的最后一个字节。
     char *u8_val = raw_to_u8_raw(val, len, charset);
     int res = str_rindex_of(u8_str->data, raw_from_index, u8_val);
     cstl_free(u8_val);
@@ -777,10 +782,10 @@ CSTL_EXPORT int    u8_str_rindex_of_u8(const u8_str_t *u8_str, int from_index, c
     return u8_str_rindex_of(u8_str, from_index, (byte_t*)val, strlen(val), CSTL_UTF8);
 }
 
-CSTL_EXPORT int    u8_str_rindex_of_u16(const u8_str_t *u8_str, int from_index, const wchar_t *val)
+CSTL_EXPORT int    u8_str_rindex_of_uni(const u8_str_t *u8_str, int from_index, const wchar_t *val)
 {
     assert(u8_str && val);
-    return u8_str_rindex_of(u8_str, from_index, (byte_t*)val, wcslen(val) * sizeof(wchar_t), CSTL_UTF16);
+    return u8_str_rindex_of(u8_str, from_index, (byte_t*)val, wcslen(val) * sizeof(wchar_t), CSTL_UNICODE);
 }
 
 // 替换u8_str中的内容
@@ -819,11 +824,11 @@ CSTL_EXPORT u8_str_t*  u8_str_replace_u8(u8_str_t *u8_str, const char *old_u8_st
             (byte_t*)new_u8_str, strlen(new_u8_str), CSTL_UTF8);
 }
 
-CSTL_EXPORT u8_str_t*  u8_str_replace_u16(u8_str_t *u8_str, const wchar_t *old_u8_str, const wchar_t *new_u8_str)
+CSTL_EXPORT u8_str_t*  u8_str_replace_uni(u8_str_t *u8_str, const wchar_t *old_u8_str, const wchar_t *new_u8_str)
 {
     assert(u8_str && old_u8_str && new_u8_str);
-    return u8_str_replace(u8_str, (byte_t*)old_u8_str, wcslen(old_u8_str) * sizeof(wchar_t), CSTL_UTF16,
-            (byte_t*)new_u8_str, wcslen(new_u8_str) * sizeof(wchar_t), CSTL_UTF16);
+    return u8_str_replace(u8_str, (byte_t*)old_u8_str, wcslen(old_u8_str) * sizeof(wchar_t), CSTL_UNICODE,
+            (byte_t*)new_u8_str, wcslen(new_u8_str) * sizeof(wchar_t), CSTL_UNICODE);
 }
 
 
@@ -834,6 +839,7 @@ CSTL_EXPORT u8_str_t*  u8_str_replace_first(u8_str_t *u8_str, int offset,  const
     assert(u8_str && old_raw && new_raw && old_charset && new_charset);
     char *u8_old = raw_to_u8_raw(old_raw, old_len, old_charset);
     char *u8_new = raw_to_u8_raw(new_raw, new_len, new_charset);
+    offset = offset < 0 ? 0 : offset;
     int raw_offset = u8_str_u8_pos_to_raw_pos(u8_str, offset); //要先将至转化为str的pos
 
     str_replace_first(u8_str->data, raw_offset, u8_old, u8_new);
@@ -862,11 +868,11 @@ CSTL_EXPORT u8_str_t*  u8_str_replace_first_u8(u8_str_t *u8_str, int offset,  co
     return u8_str_replace_first(u8_str, offset, (byte_t*)old_u8_str, strlen(old_u8_str), CSTL_UTF8,
             (byte_t*)new_u8_str, strlen(new_u8_str), CSTL_UTF8);
 }
-CSTL_EXPORT u8_str_t*  u8_str_replace_first_u16(u8_str_t *u8_str, int offset,  const wchar_t *old_u8_str, const wchar_t *new_u8_str)
+CSTL_EXPORT u8_str_t*  u8_str_replace_first_uni(u8_str_t *u8_str, int offset,  const wchar_t *old_u8_str, const wchar_t *new_u8_str)
 {
     assert(u8_str && old_u8_str && new_u8_str);
-    return u8_str_replace_first(u8_str, offset, (byte_t*)old_u8_str, wcslen(old_u8_str) * sizeof(wchar_t), CSTL_UTF16,
-            (byte_t*)new_u8_str, wcslen(new_u8_str) * sizeof(wchar_t), CSTL_UTF16);
+    return u8_str_replace_first(u8_str, offset, (byte_t*)old_u8_str, wcslen(old_u8_str) * sizeof(wchar_t), CSTL_UNICODE,
+            (byte_t*)new_u8_str, wcslen(new_u8_str) * sizeof(wchar_t), CSTL_UNICODE);
 }
 
 CSTL_EXPORT u8_str_t* u8_str_to_lowercase(u8_str_t *u8_str)
@@ -882,4 +888,3 @@ CSTL_EXPORT u8_str_t* u8_str_to_uppercase(u8_str_t *u8_str)
     str_to_uppercase(u8_str->data);
     return u8_str;
 }
-

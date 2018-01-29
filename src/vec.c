@@ -46,13 +46,13 @@ VEC *vec_new_with_capacity(int unit_size, destroy_func_t destroy_func,  int capa
     return new_vec;
 }
 
-inline int vec_capacity(const VEC *vec)
+inline size_t vec_capacity(const VEC *vec)
 {
     assert(vec);
     return vec->capacity;
 }
 
-inline int vec_size(const VEC *vec)
+inline size_t vec_size(const VEC *vec)
 {
     assert(vec);
     return vec->len;
@@ -66,20 +66,20 @@ __vec_realloc(VEC *vec, int new_capacity)
     vec->beg = cstl_realloc(vec->beg, vec->capacity * vec->unit_size);
 }
 
-void vec_resize(VEC *vec, int new_size, const void *value)
+void vec_resize(VEC *vec, size_t new_size, const void *value)
 {
     assert(vec && new_size >= 0);
     
     if (new_size <= vec_size(vec)) {
         if (vec->destroy_func) {
-            for (int i = new_size; i < vec_size(vec); i++) {
+            for (int i = new_size; i < (int)vec_size(vec); i++) {
                 (*vec->destroy_func)(vec_get(vec, i));
             }
         }
         vec->len = new_size;
     } else {
         __vec_realloc(vec, new_size);
-        for (int i = vec_size(vec); i < new_size; i++) {
+        for (int i = vec_size(vec); i < (int)new_size; i++) {
             vec_push_back(vec, value);
         }
     }
@@ -131,10 +131,10 @@ void vec_pop_back(VEC *vec)
     vec_erase(vec, vec_size(vec) - 1);
 }
 
-void vec_erase(VEC *vec, int index)
+void vec_erase(VEC *vec, size_t index)
 {
     assert(vec);
-    if (index < 0 || index >= vec_size(vec)) return;
+    if (index >= vec_size(vec)) return;
 
     if (vec->destroy_func) {
         (*vec->destroy_func)(vec_get(vec, index));
@@ -150,7 +150,7 @@ void vec_remove(VEC *vec, const void *value, cmp_func_t compare)
 {
     assert(compare && "Must sepcify compare func in the remove method of vec!");
 
-    for (int i = 0; i < vec_size(vec); i++) {
+    for (size_t i = 0; i < vec_size(vec); i++) {
         if (0 == (*compare)(value, vec_get(vec, i))) {
             vec_erase(vec, i);
             return;
@@ -163,7 +163,7 @@ void vec_remove_all(VEC *vec, const void *value, cmp_func_t compare)
     assert(compare && "Must sepcify compare func in the remove method of vec!");
     assert(vec && "VEC can't be null!");
 
-    for (int i = 0; i < vec_size(vec);) {
+    for (size_t i = 0; i < vec_size(vec);) {
         if (0 == (*compare)(value, vec_get(vec, i))) {
             vec_erase(vec, i);
         } else {
@@ -177,7 +177,7 @@ void vec_clear(VEC *vec)
     assert(vec);
      
     if (vec->destroy_func != NULL) {
-        for (int i = 0; i < vec_size(vec); i++) {
+        for (size_t i = 0; i < vec_size(vec); i++) {
             (*vec->destroy_func)(vec_get(vec, i));
         }
     }
@@ -195,7 +195,7 @@ inline bool vec_empty(const VEC *vec)
     return 0 == vec_size(vec);
 }
 
-void *vec_get(VEC *vec, int index)
+void *vec_get(VEC *vec, size_t index)
 {
     assert(vec);
 
@@ -211,7 +211,7 @@ void *vec_at(VEC *vec, int index)
     return vec_get(vec, index);
 }
 
-inline void vec_set(VEC *vec, int index, const void *value)
+inline void vec_set(VEC *vec, size_t index, const void *value)
 {
     assert(vec != NULL && index >= 0 && index < vec_size(vec) && value != NULL);
     if (vec->destroy_func) {
@@ -245,7 +245,7 @@ void *vec_find(VEC *vec, const void *val, cmp_func_t compare)
 {
     assert(vec && compare);
 
-    for (int i = 0; i < vec_size(vec); i++) {
+    for (size_t i = 0; i < vec_size(vec); i++) {
         if (0 == (*compare)(val, vec_get(vec, i))) {
             return vec_get(vec, i);
         }
@@ -300,9 +300,9 @@ __vec_insert_middle(VEC *vec, int index, const void *elem)
     ++ vec->len;
 }
 
-void vec_insert(VEC *vec, int index, const void *elem)
+void vec_insert(VEC *vec, size_t index, const void *elem)
 {
-    assert(vec && index >= 0 && elem != NULL);
+    assert(vec && elem != NULL);
     
     if (0 == index) {
         vec_push_front(vec, elem);
@@ -322,8 +322,8 @@ void vec_extend(VEC *vec, int index, const VEC *insert_vec)
     }
 
     // 在行尾插入
-    if (index >= vec_size(vec)) {
-        for (int i = 0; i < vec_size(insert_vec); i++) {
+    if (index >= (int)vec_size(vec)) {
+        for (size_t i = 0; i < vec_size(insert_vec); i++) {
             vec_push_back(vec, vec_get((VEC*)insert_vec, i));
         }
     } else {
@@ -333,7 +333,7 @@ void vec_extend(VEC *vec, int index, const VEC *insert_vec)
         } 
 
         // 插入新的元素
-        for (int i = 0; i < vec_size(insert_vec); i++) {
+        for (size_t i = 0; i < vec_size(insert_vec); i++) {
             __vec_put(vec, i + index, vec_get((VEC*)insert_vec, i));
         }
 
@@ -353,7 +353,7 @@ void vec_extend_back(VEC *vec, const VEC *insert_vec)
 }
 
 static inline void
-__vec_swap(VEC *vec, int idx1, int idx2)
+__vec_swap(VEC *vec, size_t idx1, size_t idx2)
 {
     char tmp[vec->unit_size]; //c99 数组支持运行时尺寸 
 
@@ -362,7 +362,7 @@ __vec_swap(VEC *vec, int idx1, int idx2)
     memmove((char*)vec->beg + (idx2 * vec->unit_size), tmp, vec->unit_size);
 }
 
-void vec_swap(VEC *vec, int idx1, int idx2)
+void vec_swap(VEC *vec, size_t idx1, size_t idx2)
 {
     assert(vec && "vec_t instance can't be null!");
     assert((idx1 >= 0 && idx1 < vec_size(vec)) && (idx2 >= 0 && idx2 < vec_size(vec)) 
@@ -437,7 +437,7 @@ void vec_foreach(VEC *vec, vec_foreach_func_t vec_foreach_func, void *user_data)
     assert(vec && "vec can't be null!");
     assert(vec_foreach_func && "foreach callback can't be null!");
 
-    for (int i = 0; i < vec_size(vec); i++) {
+    for (size_t i = 0; i < vec_size(vec); i++) {
         (*vec_foreach_func)(vec_get(vec, i), user_data);
     }
 }
@@ -448,7 +448,7 @@ void vec_free(VEC *vec)
 
     // 调用析构函数
     if (vec->destroy_func != NULL) {
-        for (int i = 0; i < vec_size(vec); i++) {
+        for (size_t i = 0; i < vec_size(vec); i++) {
             (*vec->destroy_func)((char*)vec->beg + (i * vec->unit_size));
         }
     }

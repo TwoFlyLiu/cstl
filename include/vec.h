@@ -91,7 +91,7 @@ CSTL_LIB void vec_free(VEC *vec);
  * 这个容量值就会变大。 
  * \note vec 绝对不能为空，否则内部会断言失败的
  */
-CSTL_LIB int vec_capacity(const VEC *vec);
+CSTL_LIB size_t vec_capacity(const VEC *vec);
 
 /*!
  * \brief 检测vec_t容器是否为空（就是内部使用有元素）
@@ -107,7 +107,7 @@ CSTL_LIB bool vec_empty(const VEC *vec);
  * \retval 返回vec_t容器当前元素的数目
  * \note vec 绝对不能为空，否则内部会断言失败的
  */
-CSTL_LIB int vec_size(const VEC *vec);
+CSTL_LIB size_t vec_size(const VEC *vec);
 
 /*!
  * \brief 重新改变vec_t容器元素的数目
@@ -123,7 +123,7 @@ CSTL_LIB int vec_size(const VEC *vec);
  * 
  * \note vec 绝对不能为空，否则内部会断言失败的
  */
-CSTL_LIB void vec_resize(VEC *vec, int new_size, const void *value);
+CSTL_LIB void vec_resize(VEC *vec, size_t new_size, const void *value);
 
 // 增加
 
@@ -160,7 +160,7 @@ CSTL_LIB void vec_push_back(VEC *vec, const void *elem);
  * \note vec 绝对不能为空（NULL），否则会断言失败。如果index < 0, 那么会在头部进行插入，如果index >= vec_size(vec),
  * 那么会在尾部进行插入。这个操作在非尾部插入，对于性能影响比较大。
  */
-CSTL_LIB void vec_insert(VEC *vec, int index, const void *elem);
+CSTL_LIB void vec_insert(VEC *vec, size_t index, const void *elem);
 
 /*!
  * \brief 将一个vec_t容器中的所有元素插入到当前vec_t容器中的指定位置。
@@ -269,7 +269,7 @@ CSTL_LIB void vec_extend_back(VEC *vec, const VEC *insert_vec);
  * \retval 如果index是有效索引位置，则返回此索引位置上的元素的地址，否则返回NULL。
  * \note vec不能为空，否则会断言失败
  */
-CSTL_LIB void *vec_get(VEC *vec, int index);
+CSTL_LIB void *vec_get(VEC *vec, size_t index);
 
 /*!
  * \bref 获取vec容器中指定的索引位置上的元素的地址
@@ -290,7 +290,7 @@ void *vec_at(VEC *vec, int index);
  * \retval none.
  * \note vec不能为NULL，否则会断言失败。index必须是有效的索引位置，否则也会断言失败。
  */
-void vec_set(VEC *vec, int index, const void *value);
+void vec_set(VEC *vec, size_t index, const void *value);
 
 /*!
  * \brief 获取vec容器中第一个元素的地址
@@ -368,7 +368,7 @@ CSTL_LIB void vec_remove_all(VEC *vec, const void *value, cmp_func_t compare);
  * \retval none.
  * \note vec 不能为NULL, index必须是有效的位置，否则会断言失败
  */
-CSTL_LIB void vec_erase(VEC *vec, int index);
+CSTL_LIB void vec_erase(VEC *vec, size_t index);
 
 /*!
  * \brief 移除vec容器中所有的元素
@@ -423,7 +423,7 @@ CSTL_LIB void vec_sort(VEC *vec, cmp_func_t compare);
  * \retval none.
  * \note VEC必须不能为空，idx1, idx2必须是有效的索引范围否则会断言失败
  */
-CSTL_LIB void vec_swap(VEC *vec, int idx1, int idx2);
+CSTL_LIB void vec_swap(VEC *vec, size_t idx1, size_t idx2);
 
 /*!
  * \brief 遍历vec容器中的所有元素
@@ -477,7 +477,7 @@ CSTL_LIB void vec_foreach(VEC *vec, vec_foreach_func_t vec_foreach_func, void *u
     static inline void type##_vec_push_back(VEC *vec, type value) {\
         vec_push_back(vec, &value);\
     }\
-    static inline void type##_vec_insert(VEC *vec, int index, type value) {\
+    static inline void type##_vec_insert(VEC *vec, size_t index, type value) {\
         vec_insert(vec, index, &value);\
     }\
     static inline void type##_vec_set(VEC *vec, int index, type value) {\
@@ -581,7 +581,7 @@ CSTL_LIB void vec_foreach(VEC *vec, vec_foreach_func_t vec_foreach_func, void *u
     static inline void unsigned_##type##_vec_push_back(VEC *vec, unsigned type value) {\
         vec_push_back(vec, &value);\
     }\
-    static inline void unsigned_##type##_vec_insert(VEC *vec, int index, unsigned type value) {\
+    static inline void unsigned_##type##_vec_insert(VEC *vec, size_t index, unsigned type value) {\
         vec_insert(vec, index, &value);\
     }\
     static inline void unsigned_##type##_vec_set(VEC *vec, int index, unsigned type value) {\

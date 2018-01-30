@@ -14,9 +14,9 @@ cstl是使用c语言编写的类似c++容器接口的通用库
   
 调用test/test_cstl来进行测试
 
-    make release=0
+    make debug=1
 
-生成上面库的release版本，就是在编译选项上加上一些优化标志，然后定义NDEBUG宏  
+生成上面库的debug版本，就是在编译选项上加上一些编译调试选项，会生成一些调试信息。
 
     make install
     

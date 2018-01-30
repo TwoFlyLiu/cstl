@@ -21,7 +21,7 @@
 typedef struct memory_record_node {
     void *memory;           //保存分配的内容
     int len;                //分配内存的长度
-    char fname[PATH_MAX];   //调用CSTL_MALLOC的文件名称
+    const char *fname;      //文件名称，需要知道的是__FILE__的值是字面值，不可变的
     char expression[EXPRESSION_MAX]; //存放返回整形值的表达式
     int line_number;        //调用CSTL_MALLOC的所在文件的行号
     struct memory_record_node *next; 
@@ -124,7 +124,7 @@ __malloc_memory_record_node(unsigned int size, const char *fname, int line, cons
     memory_record_node_t *node = (memory_record_node_t*)malloc(sizeof(memory_record_node_t));
     node->memory = malloc(size);
     node->len = size;
-    strcpy(node->fname, fname);
+    node->fname = fname;
     strcpy(node->expression, expression);
     node->line_number = line;
     node->next = NULL;
@@ -137,7 +137,7 @@ __realloc_memory_record_node(void *ptr, unsigned int size, const char *fname, in
     memory_record_node_t *node = (memory_record_node_t*)malloc(sizeof(memory_record_node_t));
     node->memory = realloc(ptr, size);
     node->len = size;
-    strcpy(node->fname, fname);
+    node->fname = fname;
     strcpy(node->expression, expression);
     node->line_number = line;
     node->next = NULL;

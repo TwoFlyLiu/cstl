@@ -76,7 +76,6 @@ init:
 
 clean:
 	$(RM) build/*.o
-	$(RM) dep/*.d
 
 # 值保留一个老的版本
 install: $(lib)
